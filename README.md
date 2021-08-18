@@ -3,7 +3,7 @@ a essential plugin for LiteXLoader
 
 ✔️ Home
 
-✖️ Warp
+✔️ Warp
 
 ✖️ TPA
 
