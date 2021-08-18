@@ -1,2 +1,2 @@
-# LXLEssentianal
-a essentianal plugin for LiteXLoader
+# LXLEssential
+a essential plugin for LiteXLoader
