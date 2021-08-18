@@ -5,6 +5,6 @@ a essential plugin for LiteXLoader
 
 ✔️ Warp
 
-✖️ TPA
+✔️ TPA
 
 ✖️ Menu
