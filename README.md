@@ -7,4 +7,6 @@ a essential plugin for LiteXLoader
 
 ✔️ TPA
 
-✖️ Menu
+✔️ Back
+
+✔️ Menu
