@@ -1,12 +1,16 @@
 # LXLEssential
-a essential plugin for LiteXLoader
+### A Essential plugin for LiteXLoader
+# Feature
+- [x]  Home
 
-✔️ Home
+- [x]  Warp
 
-✔️ Warp
+- [x]  TPA
 
-✔️ TPA
+- [x]  Back
 
-✔️ Back
+- [ ]  Menu
 
-✔️ Menu
+- [ ]  Suicide
+
+- [ ]  Custom configuration
