@@ -27,6 +27,7 @@ if(file.exists(dir)==false)then
     file.mkdir(dir..'/data/')
     file.writeTo(dir..'/data/home.json','{}')
     file.writeTo(dir..'/data/warp.json','{}')
+    file.writeTo(dir..'/data/had_clock.json','{}')
     file.mkdir(dir..'/menu')
     local c = [[
 {
@@ -59,6 +60,12 @@ if(file.exists(dir)==false)then
             "enable":true,
             "money":200
         }
+    },
+    "give_clock":{
+        "enable":true
+    },
+    "hitokoto":{
+        "enable":true
     }
 }
 ]]
@@ -85,7 +92,9 @@ end
 local cfg = data.parseJson(file.readFrom(dir..'/setting.json'))
 local homes = data.parseJson(file.readFrom(dir..'/data/home.json'))
 local warps = data.parseJson(file.readFrom(dir..'/data/warp.json'))
+local gclock = data.parseJson(file.readFrom(dir..'/data/had_clock.json'))
 local tpa_tmp = {}
+local online = {}
 local back_tmp = {}
 local menu_temp = {ifuse={},page={}}
 --#region 配置文件
@@ -120,6 +129,12 @@ local menu_temp = {ifuse={},page={}}
             "enable":true,
             "money":200
         }
+    },
+    "give_clock":{
+        "enable":true
+    },
+    "hitokoto":{
+        "enable":true
     }
 }
 ]]
@@ -183,21 +198,51 @@ end
 
 
 function save_home()
-    file.writeTo(dir..'data/home.json',data.toJson(homes))
+    file.writeTo(dir..'/data/home.json',data.toJson(homes))
 end
 function save_warp()
-    file.writeTo(dir..'data/warp.json',data.toJson(warps))
+    file.writeTo(dir..'/data/warp.json',data.toJson(warps))
+end
+--#endregion
+
+--#region GiveClock部分
+if(cfg.give_clock.enable)then
+    mc.regPlayerCmd('clock','获取一个钟',function (p,args)
+        mc.runcmdEx('give "'..p.realName..'" clock 1 0 {"minecraft:keep_on_death":{},"minecraft:item_lock":{"mode":"lock_in_inventory"}}')
+        gclock[p.realName] = gclock[p.realName] + 1 file.writeTo(dir..'/data/had_clock.json',data.toJson(gclock))
+        p:sendText('§b这是第§2'..gclock[p.realName]..'§b次给你钟了,别再弄丢啦!')
+        return false
+    end )
+    mc.listen('onJoin',function (p)
+        if(gclock[p.realName] == nil)then
+            mc.runcmdEx('give "'..p.realName..'" clock 1 0 {"minecraft:keep_on_death":{},"minecraft:item_lock":{"mode":"lock_in_inventory"}}')
+            gclock[p.realName] = 1 file.writeTo(dir..'/data/had_clock.json',data.toJson(gclock))
+        end
+    end )
+end
+--#endregion
+
+--#region Hitokoto部分
+if(cfg.hitokoto.enable)then
+    mc.listen('onJoin',function (pl)
+        network.httpGet('https://v1.hitokoto.cn',function (status,result)
+            if (status == 200) then
+                local htmp = data.parseJson(result)
+                pl:tell('§e#'..htmp.hitokoto..'§r\n§a['..system.getTimeStr()..']§r §b欢迎§r §f'..pl.realName..'§r §b加入服务器！')
+            end
+        end)
+    end)
 end
 --#endregion
 
 --#region HOME部分
 function home_mainf()
     local f = mc.newSimpleForm()
-	f:setTitle('家面板')
-	f:setContent('chose...')
-	f:addButton('添加一个家')
-	f:addButton('删除家')
-    f:addButton('传送到家')
+	f:setTitle('定点传送')
+	f:setContent('选择一个操作：')
+	f:addButton('添加一个传送点')
+	f:addButton('删除传送点')
+    f:addButton('前往传送点')
 	return f
 end
 function home_main(pl,arg)
@@ -214,18 +259,18 @@ end
 
 function home_addf()
     local f = mc.newCustomForm()
-	f:setTitle('添加一个家 ')
-	f:addInput('给家取个名字')
+	f:setTitle('添加一个传送点 ')
+	f:addInput('给传送点取个名字')
 	return f
 end
 function home_add(pl,arg)
     if(arg~=nil)then
         if(homes[pl.realName][arg[1]] ~= nil)then
-            pl:tell('[HOME] 你已经有一个同名的家了!')
+            pl:tell('[HOME] 已存在相同名称的传送点!')
             return
         end
         if(#homes[pl.realName] == cfg.home.max)then
-            pl:tell('[HOME] 你的家的数量达到最大值了')
+            pl:tell('[HOME] 你的传送点数量已达上限')
             return
         end
         local t = {}
@@ -240,8 +285,8 @@ function home_add(pl,arg)
 end
 function home_delf(pl)
     local f = mc.newCustomForm()
-	f:setTitle('删除一个家 ')
-    f:addDropdown('选择要删除的家',get_all_home(pl.realName))
+	f:setTitle('删除一个传送点 ')
+    f:addDropdown('选择要删除的传送点',get_all_home(pl.realName))
     return f
 end
 function home_del(pl,arg)
@@ -255,8 +300,8 @@ function home_del(pl,arg)
 end
 function home_tpf(pln)
     local f = mc.newSimpleForm()
-	f:setTitle('家面板')
-	f:setContent('chose...')
+	f:setTitle('定点传送')
+	f:setContent('选择一个操作：')
     for k,v in pairs(get_all_home(pln))do
         f:addButton(v)
     end
@@ -269,10 +314,13 @@ function home_tp(pl,arg)
         pl:tell('[HOME] 传送成功')
     end
 end
-mc.regPlayerCmd('home','home',function (pl,arg)
-    if(homes[pl.realName] == nil)then homes[pl.realName] = {} end
-    pl:sendForm(home_mainf(),home_main)
-end)
+if(cfg.home.enable)then
+    mc.regPlayerCmd('home','home',function (pl,arg)
+        if(homes[pl.realName] == nil)then homes[pl.realName] = {} end
+        pl:sendForm(home_mainf(),home_main)
+    end)
+end
+
 --#endregion
 
 --#region WARP部分
@@ -358,17 +406,22 @@ function warp_tp(pl,arg)
         pl:tell('[WARP] 传送成功')
     end
 end
-mc.regPlayerCmd("warp","warp",function (pl, arg)
-    pl:sendForm(warp_mainf(),warp_main)
-end)
+if(cfg.warp.enable)then
+    mc.regPlayerCmd("warp","warp",function (pl, arg)
+        pl:sendForm(warp_mainf(),warp_main)
+    end)
+end
+
 --#endregion
 
 --#region TPA部分
 function tpa_mainf()
     local f = mc.newCustomForm()
 	f:setTitle('TPA 面板')
-    f:addDropdown('选择要传送的玩家',get_all_players())
-    f:addDropdown("选择传送模式",{"传送自己到玩家","传送玩家到自己"})
+    local o = get_all_players()
+    online = o
+    f:addDropdown('选择要传送的玩家',o)
+    f:addDropdown("选择请求传送模式",{"传送自己到玩家","传送玩家到自己"})
     return f
 end
 
@@ -377,7 +430,7 @@ function tpa_select(pl,arg)
         --print(tostring(arg))
         local c = tpa_tmp[pl.realName]
         if(tostring(arg) == "false")then
-            c.player:tell("[TPA] 你的传送请求被拒绝了")
+            c.player:tell("[TPA] 你的传送请求已被拒绝")
             tpa_tmp[pl.realName] = nil
             return
         end
@@ -391,14 +444,14 @@ function tpa_select(pl,arg)
         end
         tpa_tmp[pl.realName] = nil
     else
-        pl:tell("[TPA] 这个传送请求已经超时了！")
+        pl:tell("[TPA] 该传送请求已经超时！")
     end
 end
 
 
 function tpa_main(pl,dt)
     if(dt~=nil)then
-        local topl = mc.getPlayer(get_all_players()[dt[1]+1])
+        local topl = mc.getPlayer(online[dt[1]+1])
         if(topl.realName == pl.realName)then pl:tell("[TPA] 不能传送自己！") return end
         if tpa_tmp[topl.realName]~=nil then
             pl:tell("[TPA] 对方有一个待处理的传送请求，请稍等")
@@ -406,32 +459,37 @@ function tpa_main(pl,dt)
         end
         if(dt[2] == 0)then         
             tpa_tmp[topl.realName] = {player=pl,mode=0}
+            pl:tell("[TPA] 传送请求已发送")
             topl:tell("[TPA] 您有一个待处理的传送请求\n玩家"..pl.realName.."想传送到你身边")
             topl:sendModalForm("您有一个待处理的传送请求","玩家"..pl.realName.."想传送到你身边","允许","拒绝",tpa_select)
             setTimeout(function ()
                 if(tpa_tmp[topl.realName] ~=nil)then
-                    local c = tpa_tmp[pl.realName]
+                    local c = tpa_tmp[topl.realName]
                     c.player:tell("[TPA] 您的传送请求已超时")
-                    tpa_tmp[pl.realName] = nil
+                    tpa_tmp[topl.realName] = nil
                 end
             end,30000)
         elseif dt[2] ==1 then
             tpa_tmp[topl.realName] = {player=pl,mode=1}
+            pl:tell("[TPA] 传送请求已发送")
             topl:tell("您有一个待处理的传送请求\n玩家"..pl.realName.."想让你传送到他身边")
             topl:sendModalForm("您有一个待处理的传送请求","玩家"..pl.realName.."想让你传送到他身边","允许","拒绝",tpa_select)
             setTimeout(function ()
                 if(tpa_tmp[topl.realName] ~=nil)then
-                    local c = tpa_tmp[pl.realName]
+                    local c = tpa_tmp[topl.realName]
                     c.player:tell("[TPA] 您的传送请求已超时")
-                    tpa_tmp[pl.realName] = nil
+                    tpa_tmp[topl.realName] = nil
                 end
             end,30000)
         end
     end
 end
-mc.regPlayerCmd("tpa","tpa",function (pl,arg)
-    pl:sendForm(tpa_mainf(),tpa_main)
-end)
+if(cfg.tpa.enable)then
+    mc.regPlayerCmd("tpa","tpa",function (pl,arg)
+        pl:sendForm(tpa_mainf(),tpa_main)
+    end)
+end
+
 --#endregion
 
 --#region BACK部分
@@ -439,13 +497,18 @@ mc.listen("onPlayerDie",function (pl)
     back_tmp[pl.realName] = pl.pos
     pl:tell("[BACK] 可以用/back来返回死亡点!")
 end)
-mc.regPlayerCmd("back","back to death point",function (pl,arg)
-    if(back_tmp[pl.realName] ~=nil)then
-        local d = back_tmp[pl.realName]
-        pl:teleport(d.x,d.y,d.z,d.dimid)
-        pl:tell("[BACK] 已返回上一死亡点")
-    end
-end)
+if(cfg.back.enable)then
+    mc.regPlayerCmd("back","back to death point",function (pl,arg)
+        if(back_tmp[pl.realName] ~=nil)then
+            local d = back_tmp[pl.realName]
+            pl:teleport(d.x,d.y,d.z,d.dimid)
+            pl:tell("[BACK] 已返回上一死亡点")
+        else
+            pl:tell("[BACK] 找不到死亡点！")
+        end
+    end)
+end
+
 --#endregion
 
 --#region TPR部分
@@ -522,18 +585,11 @@ mc.regPlayerCmd("m","menu",function (pl,arg)
 end)
 --#endregion
 
---#region Mymoney部分
-mc.regPlayerCmd('mymoney','check the money',function (pl,arg)
-    pl:tell('你的余额为:'..pl:getScore('money'))
-end)
---#endregion
-
 --#region 导出函数
 lxl.export(get_all_home,"lxless_get_all_home")
 lxl.export(get_all_warp,"lxless_get_all_warp")
-lxl.export(get_menu,"lxless_menu_convert")
 --#endregion
 
 log("[LXLEssential] init!")
-log("[LXLEssential] version beta 1.2.9")
+log("[LXLEssential] version beta 1.3.5.2")
 log("[LXLEssential] github -> https://github.com/LiteLDev-LXL/LXLEssential")
