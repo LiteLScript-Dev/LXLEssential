@@ -9,8 +9,8 @@
 
 - [x]  Back
 
-- [ ]  Menu
+- [x]  Menu
 
-- [ ]  Suicide
+- [x]  Suicide
 
 - [ ]  Custom configuration
