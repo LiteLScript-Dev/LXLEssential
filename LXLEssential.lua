@@ -86,6 +86,7 @@ local cfg = data.parseJson(file.readFrom(dir..'/setting.json'))
 local homes = data.parseJson(file.readFrom(dir..'/data/home.json'))
 local warps = data.parseJson(file.readFrom(dir..'/data/warp.json'))
 local tpa_tmp = {}
+local online = {}
 local back_tmp = {}
 local menu_temp = {ifuse={},page={}}
 --#region 配置文件
@@ -183,10 +184,10 @@ end
 
 
 function save_home()
-    file.writeTo(dir..'data/home.json',data.toJson(homes))
+    file.writeTo(dir..'/data/home.json',data.toJson(homes))
 end
 function save_warp()
-    file.writeTo(dir..'data/warp.json',data.toJson(warps))
+    file.writeTo(dir..'/data/warp.json',data.toJson(warps))
 end
 --#endregion
 
@@ -269,17 +270,20 @@ function home_tp(pl,arg)
         pl:tell('[HOME] 传送成功')
     end
 end
-mc.regPlayerCmd('home','home',function (pl,arg)
-    if(homes[pl.realName] == nil)then homes[pl.realName] = {} end
-    pl:sendForm(home_mainf(),home_main)
-end)
+if(cfg.home.enable)then
+    mc.regPlayerCmd('home','home',function (pl,arg)
+        if(homes[pl.realName] == nil)then homes[pl.realName] = {} end
+        pl:sendForm(home_mainf(),home_main)
+    end)
+end
+
 --#endregion
 
 --#region WARP部分
 function warp_mainf()
     local f = mc.newSimpleForm()
 	f:setTitle('地标面板')
-	f:setContent('chose...')
+	f:setContent('选择...')
 	f:addButton('添加地标')
 	f:addButton('删除地标')
     f:addButton('传送到地标')
@@ -358,16 +362,21 @@ function warp_tp(pl,arg)
         pl:tell('[WARP] 传送成功')
     end
 end
-mc.regPlayerCmd("warp","warp",function (pl, arg)
-    pl:sendForm(warp_mainf(),warp_main)
-end)
+if(cfg.warp.enable)then
+    mc.regPlayerCmd("warp","warp",function (pl, arg)
+        pl:sendForm(warp_mainf(),warp_main)
+    end)
+end
+
 --#endregion
 
 --#region TPA部分
 function tpa_mainf()
     local f = mc.newCustomForm()
 	f:setTitle('TPA 面板')
-    f:addDropdown('选择要传送的玩家',get_all_players())
+    local o = get_all_players()
+    online = o
+    f:addDropdown('选择要传送的玩家',o)
     f:addDropdown("选择传送模式",{"传送自己到玩家","传送玩家到自己"})
     return f
 end
@@ -398,7 +407,7 @@ end
 
 function tpa_main(pl,dt)
     if(dt~=nil)then
-        local topl = mc.getPlayer(get_all_players()[dt[1]+1])
+        local topl = mc.getPlayer(online[dt[1]+1])
         if(topl.realName == pl.realName)then pl:tell("[TPA] 不能传送自己！") return end
         if tpa_tmp[topl.realName]~=nil then
             pl:tell("[TPA] 对方有一个待处理的传送请求，请稍等")
@@ -406,32 +415,37 @@ function tpa_main(pl,dt)
         end
         if(dt[2] == 0)then         
             tpa_tmp[topl.realName] = {player=pl,mode=0}
+            pl:tell("[TPA] 传送请求已发送")
             topl:tell("[TPA] 您有一个待处理的传送请求\n玩家"..pl.realName.."想传送到你身边")
             topl:sendModalForm("您有一个待处理的传送请求","玩家"..pl.realName.."想传送到你身边","允许","拒绝",tpa_select)
             setTimeout(function ()
                 if(tpa_tmp[topl.realName] ~=nil)then
-                    local c = tpa_tmp[pl.realName]
+                    local c = tpa_tmp[topl.realName]
                     c.player:tell("[TPA] 您的传送请求已超时")
-                    tpa_tmp[pl.realName] = nil
+                    tpa_tmp[topl.realName] = nil
                 end
             end,30000)
         elseif dt[2] ==1 then
             tpa_tmp[topl.realName] = {player=pl,mode=1}
+            pl:tell("[TPA] 传送请求已发送")
             topl:tell("您有一个待处理的传送请求\n玩家"..pl.realName.."想让你传送到他身边")
             topl:sendModalForm("您有一个待处理的传送请求","玩家"..pl.realName.."想让你传送到他身边","允许","拒绝",tpa_select)
             setTimeout(function ()
                 if(tpa_tmp[topl.realName] ~=nil)then
-                    local c = tpa_tmp[pl.realName]
+                    local c = tpa_tmp[topl.realName]
                     c.player:tell("[TPA] 您的传送请求已超时")
-                    tpa_tmp[pl.realName] = nil
+                    tpa_tmp[topl.realName] = nil
                 end
             end,30000)
         end
     end
 end
-mc.regPlayerCmd("tpa","tpa",function (pl,arg)
-    pl:sendForm(tpa_mainf(),tpa_main)
-end)
+if(cfg.tpa.enable)then
+    mc.regPlayerCmd("tpa","tpa",function (pl,arg)
+        pl:sendForm(tpa_mainf(),tpa_main)
+    end)
+end
+
 --#endregion
 
 --#region BACK部分
@@ -439,13 +453,18 @@ mc.listen("onPlayerDie",function (pl)
     back_tmp[pl.realName] = pl.pos
     pl:tell("[BACK] 可以用/back来返回死亡点!")
 end)
-mc.regPlayerCmd("back","back to death point",function (pl,arg)
-    if(back_tmp[pl.realName] ~=nil)then
-        local d = back_tmp[pl.realName]
-        pl:teleport(d.x,d.y,d.z,d.dimid)
-        pl:tell("[BACK] 已返回上一死亡点")
-    end
-end)
+if(cfg.back.enable)then
+    mc.regPlayerCmd("back","back to death point",function (pl,arg)
+        if(back_tmp[pl.realName] ~=nil)then
+            local d = back_tmp[pl.realName]
+            pl:teleport(d.x,d.y,d.z,d.dimid)
+            pl:tell("[BACK] 已返回上一死亡点")
+        else
+            pl:tell("[BACK] 找不到死亡点！")
+        end
+    end)
+end
+
 --#endregion
 
 --#region TPR部分
@@ -464,6 +483,7 @@ function get_menu(page)
         local errf = mc.newSimpleForm()
         errf:setTitle("无法找到文件"..dir.."/menu/"..page.."json")
         errf:setContent("无法找到文件"..dir.."/menu/"..page.."json")
+		return errf
     end
     local fi = data.parseJson(file.readFrom(dir.."/menu/"..page..".json"))
     local f = mc.newSimpleForm()
@@ -522,18 +542,11 @@ mc.regPlayerCmd("m","menu",function (pl,arg)
 end)
 --#endregion
 
---#region Mymoney部分
-mc.regPlayerCmd('mymoney','check the money',function (pl,arg)
-    pl:tell('你的余额为:'..pl:getScore('money'))
-end)
---#endregion
-
 --#region 导出函数
 lxl.export(get_all_home,"lxless_get_all_home")
 lxl.export(get_all_warp,"lxless_get_all_warp")
-lxl.export(get_menu,"lxless_menu_convert")
 --#endregion
 
 log("[LXLEssential] init!")
-log("[LXLEssential] version beta 1.2.9")
+log("[LXLEssential] version beta 1.3.7")
 log("[LXLEssential] github -> https://github.com/LiteLDev-LXL/LXLEssential")
