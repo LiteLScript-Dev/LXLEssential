@@ -9,7 +9,7 @@
 
 - [x]  Back
 
-- [ ]  Menu
+- [x]  Menu
 
 - [ ]  Suicide
 
