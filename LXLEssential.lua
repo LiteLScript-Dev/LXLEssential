@@ -479,10 +479,10 @@ end)
 --#region 菜单部分
 
 function get_menu(page)
-    if(file.exists(dir.."/menu/"..page.."json") == false)then
+    if(file.exists(dir.."/menu/"..page..".json") == false)then
         local errf = mc.newSimpleForm()
-        errf:setTitle("无法找到文件"..dir.."/menu/"..page.."json")
-        errf:setContent("无法找到文件"..dir.."/menu/"..page.."json")
+        errf:setTitle("配置文件未找到")
+        errf:setContent("无法找到文件"..dir.."/menu/"..page..".json")
 		return errf
     end
     local fi = data.parseJson(file.readFrom(dir.."/menu/"..page..".json"))
