@@ -513,6 +513,13 @@ function menu_select(pl,arg)
         elseif se.type == "form" then
             menu_temp.page[pl.realName] = se.command
             pl:sendForm(get_menu(menu_temp.page[pl.realName]),menu_select)
+        elseif se.type == "opform" then
+            if(pl:isOP())then
+                menu_temp.page[pl.realName] = se.command
+                pl:sendForm(get_menu(menu_temp.page[pl.realName]),menu_select)
+            else
+                pl:tell("§c[警告]§r 您不是OP，无权打开此菜单！")
+            end
         end
     end
 end
@@ -548,5 +555,5 @@ lxl.export(get_all_warp,"lxless_get_all_warp")
 --#endregion
 
 log("[LXLEssential] init!")
-log("[LXLEssential] version beta 1.3.7")
+log("[LXLEssential] version beta 1.3.8")
 log("[LXLEssential] github -> https://github.com/LiteLDev-LXL/LXLEssential")
