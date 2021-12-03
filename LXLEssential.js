@@ -23,10 +23,11 @@
  *  do not change the plugin bacause all the message can change at the lang file
  *  thank you for use my plugin
  *  if you have any problem , find me at https://discord.gg/XRUgWkvp 
- * 
+ *  API:https://cdn.jsdelivr.net/gh/LiteLDev-LXL/LXLEssential/LXLEssential.js
  */
 
-const version = '1.3.7.5';
+const version = '1.3.7.6';
+const lang_version = 1.1;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path+'lang/';
 const data_path = dir_path + "data.json";
@@ -114,6 +115,38 @@ if(file.exists(lang_dir+cfg.lang+'.ini')==false){
 }
 
 var lang = new IniConfigFile(lang_dir+cfg.lang+'.ini');
+
+if(lang.getFloat('BASIC','version') < lang_version){
+    log('[LXLEssential] 语言文件版本过低！！请更新！！');
+    log('[LXLEssential] The language file version is too low!!! Please update!!!');
+}
+
+
+function init(){
+    log('[LXLEssential] init!');
+    log('[LXLEssential] v'+version);
+    log('[LXLEssential] author:lition');
+    setInterval(() => {
+        network.httpGet('https://cdn.jsdelivr.net/gh/LiteLDev-LXL/LXLEssential/api.json',(c,d)=>{
+        if(c==200){
+            var api = JSON.parse(d);
+            if(api.latest_version != version){
+                log('[LXLEssential] ',`检测到新版本：${api.latest_version}，当前版本：${version}`);
+                getNewFile();
+            }
+        }
+    });
+    }, 300000);
+}
+
+function getNewFile(){
+    network.httpGet('https://cdn.jsdelivr.net/gh/LiteLDev-LXL/LXLEssential/LXLEssential.js',(c,d)=>{
+        if(c==200){
+            file.writeTo('./plugins/LXLEssential.js',d);
+            log('[LXLEssential] 自动更新获取完成');
+        }
+    });
+}
 
 function get_money(pl) {
     switch (cfg.economy.type) {
@@ -514,6 +547,4 @@ if(cfg.economy.enable){
     });
 }
 
-log('[LXLEssential] init!');
-log('[LXLEssential] v'+version);
-log('[LXLEssential] author:lition');
+init();
