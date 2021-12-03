@@ -18,6 +18,7 @@
 
 - [x]  Custom configuration
 
+# Commands
 
 |command|permission|describe|
 |:-:|:-:|:-:|
