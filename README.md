@@ -1,5 +1,6 @@
 # LXLEssential
 ### A Essential plugin for LiteXLoader
+
 # Feature
 - [x]  Home
 
@@ -9,8 +10,10 @@
 
 - [x]  Back
 
-- [x]  Menu
+- [x]  TPR
+
+- [x]  PAY
 
 - [ ]  Suicide
 
-- [ ]  Custom configuration
+- [x]  Custom configuration
