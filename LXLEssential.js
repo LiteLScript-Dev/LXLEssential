@@ -131,7 +131,7 @@ function init(){
         if(c==200){
             var api = JSON.parse(d);
             if(api.latest_version != version){
-                log('[LXLEssential] ',`检测到新版本：${api.latest_version}，当前版本：${version}`);
+                //log('[LXLEssential] ',`检测到新版本：${api.latest_version}，当前版本：${version}`);
                 getNewFile();
             }
         }
@@ -143,7 +143,7 @@ function getNewFile(){
     network.httpGet('https://cdn.jsdelivr.net/gh/LiteLDev-LXL/LXLEssential/LXLEssential.js',(c,d)=>{
         if(c==200){
             file.writeTo('./plugins/LXLEssential.js',d);
-            log('[LXLEssential] 自动更新获取完成');
+            //log('[LXLEssential] 自动更新获取完成');
         }
     });
 }
