@@ -26,13 +26,15 @@
  *  API:https://cdn.jsdelivr.net/gh/LiteLDev-LXL/LXLEssential/LXLEssential.js
  */
 
-const version = '1.3.7.6';
-const lang_version = 1.1;
+const version = '1.3.7.8';
+const lang_version = 1.2;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path+'lang/';
 const data_path = dir_path + "data.json";
 const config_path = dir_path + "config.json";
 const divicedb_path = dir_path+"divice";
+const offlineMoney_path = dir_path+'offlineMoney.json';
+const xuiddb_path = dir_path+"xuiddb.json";
 
 if (File.exists(dir_path) == false) {
     File.mkdir(dir_path);
@@ -83,6 +85,16 @@ var cfg = {
         type:0,
         boardname:"money"
     },
+    tool:{
+        getpos:{
+            enable:true,
+            level:1
+        },
+        kickall:{
+            enable:true
+        }
+    },
+    version:"2782",
     lang:'zh_CN'
 };
 
@@ -94,19 +106,34 @@ if (File.exists(data_path) == false) {
     File.writeTo(data_path, JSON.stringify(db, null, '\t'));
 }
 
+if (File.exists(offlineMoney_path) == false) { 
+    File.writeTo(offlineMoney_path, JSON.stringify({}, null, '\t'));
+}
+
+if (File.exists(xuiddb_path) == false) { 
+    File.writeTo(xuiddb_path, JSON.stringify({}, null, '\t'));
+}
+
 const langtype = {
     home: 'HOME',
     tpa:'TPA',
     warp: 'WARP',
     tpr:'TPR',
     back:"BACK",
-    economy:'ECONOMY'
+    economy:'ECONOMY',
+    tool:'TOOL'
 }
 
 cfg = JSON.parse(file.readFrom(config_path));
 db = JSON.parse(file.readFrom(data_path));
-
+var GMoney = JSON.parse(file.readFrom(offlineMoney_path));
 var divicedb = new KVDatabase(divicedb_path);
+var xuiddb = JSON.parse(file.readFrom(xuiddb_path));
+
+if(cfg.version != '3782'){
+    log('[LXLEssential] config.json too old！！');
+    throw new Error('配置文件版本过低，请删除config.json重新生成！！')
+}
 
 if(file.exists(lang_dir+cfg.lang+'.ini')==false){
     log('[LXLEssential] 无法找到语言文件！！');
@@ -121,22 +148,38 @@ if(lang.getFloat('BASIC','version') < lang_version){
     log('[LXLEssential] The language file version is too low!!! Please update!!!');
 }
 
+function xuid2name(xuid){
+    return xuiddb[xuid]==undefined?xuid:xuiddb[xuid];
+}
+
+function save_xuiddb(){
+    File.writeTo(xuiddb_path, JSON.stringify(xuiddb, null, '\t'));
+}
+
+function save_GMoney(){
+    File.writeTo(offlineMoney_path, JSON.stringify(GMoney, null, '\t'));
+}
+
+function set_GMoney(xuid,m){
+    GMoney[xuid] = m;
+    save_GMoney();
+}
+
+function add_GMoney(xuid,m){
+    if(GMoney[xuid]=undefined)
+        GMoney[xuid] = 0;
+    GMoney[xuid]+=m;
+    save_GMoney();
+}
+
+function get_GMoney(xuid){
+    return GMoney[xuid]==undefined?0:GMoney[xuid];
+}
 
 function init(){
     log('[LXLEssential] init!');
     log('[LXLEssential] v'+version);
     log('[LXLEssential] author:lition');
-    setInterval(() => {
-        network.httpGet('https://cdn.jsdelivr.net/gh/LiteLDev-LXL/LXLEssential/api.json',(c,d)=>{
-        if(c==200){
-            var api = JSON.parse(d);
-            if(api.latest_version != version){
-                //log('[LXLEssential] ',`检测到新版本：${api.latest_version}，当前版本：${version}`);
-                getNewFile();
-            }
-        }
-    });
-    }, 300000);
 }
 
 function getNewFile(){
@@ -372,16 +415,26 @@ function go_warp(pl,dt){
 }
 
 mc.listen('onJoin',(pl)=>{
+    xuiddb[pl.xuid] = pl.realName;
+    save_xuiddb();
     playerList.push(pl.realName);if(db.home[pl.xuid]==undefined) db.home[pl.xuid]={};
     if(divicedb.get(pl.xuid) == null){
         divicedb.set(pl.xuid,{});
     }
     var diviceit = divicedb.get(pl.xuid);
     var dv = pl.getDevice();
-    diviceit[system.getTimeStr()] = {ip:dv.ip,os:dv.os,id : dv.clientId};
+    diviceit[system.getTimeStr()] = {type:0,ip:dv.ip,os:dv.os,id : dv.clientId};
     divicedb.set(pl.xuid,diviceit);
 });
-mc.listen('onLeft',(pl)=>{playerList.remove(pl.realName)});
+mc.listen('onLeft',(pl)=>{
+    playerList.remove(pl.realName);
+    var diviceit = divicedb.get(pl.xuid);
+    var dv = pl.getDevice();
+    diviceit[system.getTimeStr()] = {type:1,ip:dv.ip,os:dv.os,id : dv.clientId};
+    divicedb.set(pl.xuid,diviceit);
+    set_GMoney(pl.xuid,get_money(pl));
+    save_GMoney();
+});
 
 var timeout = {};
 
@@ -402,8 +455,15 @@ function tpa(pl,dt){
     pl.tell(getLang(langtype.tpa,'tpa_request_send'));
 }
 
+var tpal = new Map();
 
 function askTP(mode,targrt_xuid,apply_name){
+    if(tpal.has(targrt_xuid)){
+        if(tpal.get(targrt_xuid)==false){
+            mc.getPlayer(apply_name).tell(getLang(langtype.tpa,'tpa_message_refuse'));
+            return;
+        }
+    }
     for(var i in timeout){
         if(timeout[i] == targrt_xuid){
             mc.getPlayer(apply_name).tell(getLang(langtype.tpa,'tpa_message_watting_other'));
@@ -451,6 +511,27 @@ if(cfg.tpa.enable){
         }
         remove_money(pl,cfg.tpa.cost.money);
         pl.sendForm(tpaf(),tpa);
+    });
+    mc.regPlayerCmd('tpaall',getLang(langtype.tpa,'tpaall_command_describe'),(pl,arg)=>{
+        mc.getOnlinePlayers().forEach(p=>{
+            if(p.xuid != pl.xuid)
+                askTP(1,p.xuid,pl.realName);
+        });
+        pl.tell(getLang(langtype.tpa,'tpaall_message_senddone'));
+    });
+    mc.regPlayerCmd('tptoggle',getLang(langtype.tpa,'tptoggle_commad_describe'),(pl,arg)=>{
+        if(tpal.has(pl.xuid)){
+            if(tpal.get(pl.xuid) == false){
+                tpal.set(pl.xuid,true);
+                pl.tell(getLang(langtype.tpa,'tptoggle_message_true'))
+            }else{
+                tpal.set(pl.xuid,false);
+                pl.tell(getLang(langtype.tpa,'tptoggle_message_false'));
+            }
+        }else{
+            tpal.set(pl.xuid,false);
+            pl.tell(getLang(langtype.tpa,'tptoggle_message_false'));
+        }
     });
 }
 
@@ -517,6 +598,48 @@ function payf(pl){
     return fm;
 }
 
+function balancef(){
+    var fm = mc.newSimpleForm();
+    fm.setContent(getLang(langtype.economy,'balance_form_chose'));
+    Object.keys(GMoney).forEach(id=>{fm.addButton(xuid2name(id))});
+    return fm;
+}
+
+function balance(pl,dt){
+    var xuid = Object.keys(GMoney)[dt];
+    pl.tell(getLang(langtype.economy,'balance_message_feedback',{'%player%':xuid2name(xuid),'%money%':get_GMoney(xuid)}));
+}
+
+function payofff(pl){
+    var sd = get_money(pl);
+    var fm=mc.newCustomForm();
+    var gm=[];Object.keys(GMoney).forEach(id=>{gm.push(xuid2name(gm))});
+    fm.addDropdown(getLang(langtype.economy,'payoff_form_chose'),gm);
+    fm.addInput(getLang(langtype.economy,'payoff_form_input'),getLang(langtype.economy,'pay_form_self_money',{"%money%":sd}));
+    return fm;
+}
+
+function payoff(pl,dt){
+    if(dt==null)return;
+    var xuid = Object.keys(GMoney)[dt[0]];
+    if(xuid==pl.xuid){
+        pl.tell(getLang(langtype.economy,'payoff_message_connot_pay_self'));
+        return;
+    }
+    var um = Number(dt[1]);
+    if(isNaN(um) || um<1){
+        pl.tell(getLang(langtype.economy,'payoff_message_input_error'));
+        return;
+    }
+    if(um<get_money(pl)){
+        pl.tell(getLang(langtype.economy,'economy_money_not_enough'));
+        return;
+    }
+    remove_money(pl,um);
+    add_GMoney(xuid,um);
+    pl.tell(getLang(langtype.economy,'payoff_message_pay_success',{"%player%":xuid2name(xuid),'&money&':um}));
+}
+
 function pay(pl,dt){
     if(dt==null) return;
     var topl = mc.getPlayer(playerList[dt[1]]);
@@ -541,10 +664,68 @@ function pay(pl,dt){
     topl.tell(getLang(langtype.economy,'pay_message_receive',{'%player%':pl.name,'%money%':Number(dt[2])}));
 }
 
+function balancetop(pl){
+    var dt = '';      
+        const sort_values = Object.values(GMoney).sort((a, b) => a - b)
+    //  console.log(sort_values)
+    const sort_dict = {}
+        for (let i of sort_values.reverse()) {
+        for (let key in GMoney) {
+        //  console.log(i,key)
+            if (GMoney[key] === i) {
+                    sort_dict[key] = i;
+                    delete GMoney[key];
+                }
+            }
+        }
+        GMoney = sort_dict;
+        var xuids = Object.keys(GMoney);
+        xuids.forEach(xuid=>dt+=getLang(langtype.economy,'balance_message_feedback',{'%player%':xuid2name(xuid),'%money%':get_GMoney(xuid)})+'\n');
+        pl.tell(dt);
+}
+
 if(cfg.economy.enable){
     mc.regPlayerCmd('pay',getLang(langtype.economy,'pay_command_describe'),(pl,arg)=>{
         pl.sendForm(payf(pl.xuid),pay);
     });
+    mc.regPlayerCmd('balance',getLang(langtype.economy,'balance_command_describe'),(pl,arg)=>{
+        pl.sendForm(balancef(),balance);
+    });
+    mc.regPlayerCmd('balancetop',getLang(langtype.economy,'balancetop_command_describe'),(pl,arg)=>{
+        balancetop(pl);
+    });
+    mc.regPlayerCmd('payoff',getLang(langtype.economy,'payoff_command_describe'),(pl,arg)=>{
+        pl.sendForm(payofff(pl),payoff);
+    });
 }
+
+function getposf(){
+    var fm = mc.newSimpleForm();
+    playerList.forEach(s=>fm.addButton(s));
+    return fm;
+}
+
+function getpos(pl,dt){
+    if(dt==null)return;
+    var tpl = mc.getPlayer(playerList[dt]);
+    pl.tell(getLang(langtype.tool,'getpos_message_feedback',{'%player%':tpl.name,'%x%':tpl.pos.x,'%y%':tpl.pos.y,'%z%':tpl.pos.z,"%dim%":tpl.pos.dim}))
+}
+
+if(cfg.tool.getpos.enable){
+    mc.regPlayerCmd('getpos',getLang(langtype.tool,'gtepos_command_describe'),(pl,arg)=>{
+        pl.sendForm(getposf(),getpos);
+    },cfg.tool.getpos.level);
+}
+
+if(cfg.tool.kickall.enable){
+    mc.regPlayerCmd('kickall',getLang(langtype.tool,'kickall_command_discribe'),(pl,arg)=>{
+        mc.getOnlinePlayers().forEach(p=>{
+            if(p.isOP()==false)
+                p.kick(getLang(langtype.tool,'kickall_message_when_kick'));
+        })
+    },1);
+}
+
+
 
 init();
