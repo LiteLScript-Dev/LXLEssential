@@ -26,7 +26,7 @@
  *  API:https://cdn.jsdelivr.net/gh/LiteLDev-LXL/LXLEssential/LXLEssential.js
  */
 
-const version = '1.3.7.8';
+const version = '1.3.8.0';
 const lang_version = 1.2;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path+'lang/';
@@ -447,7 +447,7 @@ function tpaf(){
 
 function tpa(pl,dt){
     if(dt==null) return;
-    if(playerList[dt[1]] == pl.realName){
+    if(playerList[dt[0]] == pl.realName){
         pl.tell(getLang(langtype.tpa,'tpa_message_not_tp_self'));
         return;
     }
@@ -483,10 +483,10 @@ function askTP(mode,targrt_xuid,apply_name){
         if(dt){
             topl.tell(getLang(langtype.tpa,'tpa_message_accept'));
             switch(mode){       
-                case 0:
+                case 1:
                     pl.teleport(topl.pos);                   
                     break;
-                case 1:
+                case 0:
                     topl.teleport(pl.pos);
                     break;
             }
@@ -598,18 +598,6 @@ function payf(pl){
     return fm;
 }
 
-function balancef(){
-    var fm = mc.newSimpleForm();
-    fm.setContent(getLang(langtype.economy,'balance_form_chose'));
-    Object.keys(GMoney).forEach(id=>{fm.addButton(xuid2name(id))});
-    return fm;
-}
-
-function balance(pl,dt){
-    var xuid = Object.keys(GMoney)[dt];
-    pl.tell(getLang(langtype.economy,'balance_message_feedback',{'%player%':xuid2name(xuid),'%money%':get_GMoney(xuid)}));
-}
-
 function payofff(pl){
     var sd = get_money(pl);
     var fm=mc.newCustomForm();
@@ -664,7 +652,14 @@ function pay(pl,dt){
     topl.tell(getLang(langtype.economy,'pay_message_receive',{'%player%':pl.name,'%money%':Number(dt[2])}));
 }
 
+function plush_all_money(){
+    mc.getOnlinePlayers().forEach(pl=>{
+        set_GMoney(pl.xuid,get_money(pl));
+    });
+}
+
 function balancetop(pl){
+    plush_all_money();
     var dt = '';      
         const sort_values = Object.values(GMoney).sort((a, b) => a - b)
     //  console.log(sort_values)
@@ -689,7 +684,7 @@ if(cfg.economy.enable){
         pl.sendForm(payf(pl.xuid),pay);
     });
     mc.regPlayerCmd('balance',getLang(langtype.economy,'balance_command_describe'),(pl,arg)=>{
-        pl.sendForm(balancef(),balance);
+        pl.tell(getLang(langtype.economy,'balance_message_feedback',{'%player%':pl.realName,'%money%':get_money(pl)}));
     });
     mc.regPlayerCmd('balancetop',getLang(langtype.economy,'balancetop_command_describe'),(pl,arg)=>{
         balancetop(pl);
