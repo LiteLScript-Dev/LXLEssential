@@ -1,5 +1,6 @@
 //LiteXLoader Dev Helper
-/// <reference path="c:\Users\Lition\.vscode\extensions\moxicat.lxldevhelper-0.1.4/Library/JS/Api.js" /> 
+/// <reference path="c:\Users\Lition\.vscode\extensions\moxicat.lxldevhelper-0.1.7/Library/JS/Api.js" /> 
+
 
 /*
  * 
@@ -24,7 +25,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.8.4';
+const version = '1.3.8.6';
 const lang_version = 1.2;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -181,8 +182,9 @@ function init() {
 function getNewFile() {
     network.httpGet('https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js', (c, d) => {
         if (c == 200) {
-            file.writeTo('./plugins/LXLEssential.js', d);
-            //log('[LXLEssential] 自动更新获取完成');
+            if(file.exists(dir_path+".noupdate")==false){
+                file.writeTo('./plugins/LXLEssential.js', d);
+            }
         }
     });
 }
@@ -235,7 +237,7 @@ function tran_money(pl1, pl2, m) {
 function getLang(type, str, holder = {}) {
     var rt = lang.getStr(type, str, str);
     for (var i in holder) {
-        rt = rt.replace(i, holder[i]);
+        rt = rt.replaceAll(i, holder[i]);
     }
     return rt;
 }
@@ -412,7 +414,6 @@ function go_warp(pl, dt) {
 
 mc.listen('onJoin', (pl) => {
     xuiddb[pl.xuid] = pl.realName;
-    let dv = pl.getDevice();
     save_xuiddb();
     playerList.push(pl.realName); 
     if (db.home[pl.xuid] == undefined) db.home[pl.xuid] = {};
@@ -590,7 +591,8 @@ function payf(pl) {
 function payofff(pl) {
     var sd = get_money(pl);
     var fm = mc.newCustomForm();
-    var gm = []; Object.keys(GMoney).forEach(id => { gm.push(xuid2name(gm)) });
+    var gm = []
+    ; Object.keys(GMoney).forEach(id => { gm.push(xuid2name(id)) });
     fm.addDropdown(getLang(langtype.economy, 'payoff_form_chose'), gm);
     fm.addInput(getLang(langtype.economy, 'payoff_form_input'), getLang(langtype.economy, 'pay_form_self_money', { "%money%": sd }));
     return fm;
@@ -624,7 +626,7 @@ function pay(pl, dt) {
         pl.tell(getLang(langtype.economy, 'pay_message_connot_pay_self'));
         return;
     }
-    if (isNaN(Number(dt[2])) == false) {
+    if (isNaN(Number(dt[2]))) {
         pl.tell(getLang(langtype.economy, 'pay_message_input_error'))
         return;
     }
@@ -670,7 +672,7 @@ function balancetop(pl) {
 
 if (cfg.economy.enable) {
     mc.regPlayerCmd('pay', getLang(langtype.economy, 'pay_command_describe'), (pl, arg) => {
-        pl.sendForm(payf(pl.xuid), pay);
+        pl.sendForm(payf(pl), pay);
     });
     mc.regPlayerCmd('balance', getLang(langtype.economy, 'balance_command_describe'), (pl, arg) => {
         pl.tell(getLang(langtype.economy, 'balance_message_feedback', { '%player%': pl.realName, '%money%': get_money(pl) }));
@@ -718,4 +720,4 @@ lxl.export(() => { return db.warp }, "lxless:getWarps")
 lxl.export((nm) => { return db.warp[nm]; }, "lxless:getWarp");
 lxl.export(get_GMoney, "lxless:getOfflineMoney");
 lxl.export(xuid2name, "lxless:xuid2name");
-lxl.export(() => { return playerList }, "lxless:getOnlinePlayers");
+lxl.export(() => { return playerList; }, "lxless:getOnlinePlayers");
