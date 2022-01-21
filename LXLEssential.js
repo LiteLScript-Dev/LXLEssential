@@ -25,7 +25,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.9.0';
+const version = '1.3.9.1';
 const lang_version = 1.2;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -33,6 +33,7 @@ const data_path = dir_path + "data.json";
 const config_path = dir_path + "config.json";
 const offlineMoney_path = dir_path + 'offlineMoney.json';
 const xuiddb_path = dir_path + "xuiddb.json";
+const error_path = dir_path+"errors";
 const log_path = dir_path+"log.txt";
 
 if (File.exists(dir_path) == false) {
@@ -101,6 +102,10 @@ if (File.exists(config_path) == false) {
     File.writeTo(config_path, JSON.stringify(cfg, null, '\t'));
 }
 
+if(file.exists(error_path)==false){
+    file.mkdir(error_path)
+}
+
 if (File.exists(data_path) == false) {
     File.writeTo(data_path, JSON.stringify(db, null, '\t'));
 }
@@ -123,14 +128,24 @@ const langtype = {
     tool: 'TOOL'
 }
 
-cfg = JSON.parse(file.readFrom(config_path));
+var tmpcfg = JSON.parse(file.readFrom(config_path));
 db = JSON.parse(file.readFrom(data_path));
 var GMoney = JSON.parse(file.readFrom(offlineMoney_path));
 var xuiddb = JSON.parse(file.readFrom(xuiddb_path));
 
-if (cfg.version != '3782') {
+if (tmpcfg.version != cfg.version) {
     logFile('config.json too old！！');
-    throw new Error('配置文件版本过低，请删除config.json重新生成！！')
+    //throw new Error('配置文件版本过低，请删除config.json重新生成！！');
+    for(var i in tmpcfg){
+        if(i!="version"){
+            logFile(`自动更新配置文件项：${i}`);
+            cfg[i] = tmpcfg[i];
+        }
+    }
+    logFile(配`置文件更新完毕，${tmpcfg.version} >> ${cfg.version}`);
+    File.writeTo(config_path, JSON.stringify(cfg, null, '\t'));
+}else{
+    cfg = tmpcfg;
 }
 
 if (file.exists(lang_dir + cfg.lang + '.ini') == false) {
@@ -153,6 +168,14 @@ function logFile(msg){
 
 function xuid2name(xuid) {
     return xuiddb[xuid] == undefined ? xuid : xuiddb[xuid];
+}
+
+function name2xuid(n){
+    if(Object.values(xuiddb).indexOf(n) == -1){
+        logFile(`未能找到玩家${n}的xuid数据`);
+        return n;
+    }
+    return Object.keys(xuiddb)[Object.values(xuiddb).indexOf(n)];
 }
 
 function save_xuiddb() {
@@ -195,13 +218,16 @@ function getNewFile() {
         }
     });
 }
-function getUpdate(){
+function getUpdate(show=false){
     network.httpGet('https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/api.json', (c, d) => {
         if (c == 200) {
             var dt = JSON.parse(d);
             if(dt.latest != version){
                 logFile(`获取到新版本：${dt.latest}，自动更新中...`);
                 getNewFile();
+            }else{
+                if(show)
+                    logFile("当前即为最新版本。");
             }
         }
     });
@@ -744,6 +770,7 @@ lxl.export(get_home, "lxless:getHome");
 lxl.export(get_homes, "lxless:getHomes");
 lxl.export(get_GMoney, "lxless:getOfflineMoney");
 lxl.export(xuid2name, "lxless:xuid2name");
+lxl.export(name2xuid,"lxless:name2xuid");
 lxl.export(() => {
      return db.warp 
 }, "lxless:getWarps")
@@ -776,3 +803,37 @@ lxl.export((xuid,num)=>{
     set_GMoney(xuid,num);
     return true;
 },"lxless:setOfflineMoney");
+
+
+mc.regConsoleCmd("lxless","LXLEssential",(arg)=>{
+    if(arg.length==0){
+        log("命令参数不足");
+        return;
+    }
+    switch(arg[0]){
+        case "xuid2name":
+            let re = xuid2name(arg[1]);
+            if(re==arg[1])log("未找到此xuid对应的玩家");
+            else log(re);
+            break;
+        case "name2xuid":
+            log(name2xuid(arg[1]));
+            break;
+        case "update":
+            log("正在检测更新...");
+            getUpdate(true);
+            break;
+        case "getmoney":
+            log(get_GMoney(name2xuid(arg[1])));
+            break;
+        case "reload":
+            mc.runcmd("lxl reload LXLEssential.js");
+            break;
+        case "version":
+            log(version)
+            break;
+        default:
+            log("未知命令");
+            break;
+    }
+})
