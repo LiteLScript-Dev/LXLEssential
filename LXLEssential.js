@@ -25,7 +25,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.8.6';
+const version = '1.3.8.7';
 const lang_version = 1.2;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -188,6 +188,18 @@ function getNewFile() {
         }
     });
 }
+function getUpdate(){
+    network.httpGet('https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/api.json', (c, d) => {
+        if (c == 200) {
+            var dt = JSON.parse(d);
+            if(dt.latest != version){
+                getNewFile();
+            }
+        }
+    });
+}
+
+setInterval(getUpdate, 10*60*1000);
 
 function get_money(pl) {
     switch (cfg.economy.type) {
