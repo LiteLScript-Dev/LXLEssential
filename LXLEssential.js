@@ -25,7 +25,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.8.8';
+const version = '1.3.8.9';
 const lang_version = 1.2;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -33,6 +33,7 @@ const data_path = dir_path + "data.json";
 const config_path = dir_path + "config.json";
 const offlineMoney_path = dir_path + 'offlineMoney.json';
 const xuiddb_path = dir_path + "xuiddb.json";
+const log_path = dir_path+"log.txt";
 
 if (File.exists(dir_path) == false) {
     File.mkdir(dir_path);
@@ -128,21 +129,26 @@ var GMoney = JSON.parse(file.readFrom(offlineMoney_path));
 var xuiddb = JSON.parse(file.readFrom(xuiddb_path));
 
 if (cfg.version != '3782') {
-    log('[LXLEssential] config.json too old！！');
+    logFile('config.json too old！！');
     throw new Error('配置文件版本过低，请删除config.json重新生成！！')
 }
 
 if (file.exists(lang_dir + cfg.lang + '.ini') == false) {
-    log('[LXLEssential] 无法找到语言文件！！');
-    log('[LXLEssential] unable to find the lang pack！！');
+    logFile('无法找到语言文件！！');
+    logFile('unable to find the lang pack！！');
     //return;
 }
 
 var lang = new IniConfigFile(lang_dir + cfg.lang + '.ini');
 
 if (lang.getFloat('BASIC', 'version') < lang_version) {
-    log('[LXLEssential] 语言文件版本过低！！请更新！！');
-    log('[LXLEssential] The language file version is too low!!! Please update!!!');
+    logFile('语言文件版本过低！！请更新！！');
+    logFile('The language file version is too low!!! Please update!!!');
+}
+
+function logFile(msg){
+    log(msg);
+    file.writeLine(log_path,`[${system.getTimeStr()}] ${msg}`)
 }
 
 function xuid2name(xuid) {
@@ -174,9 +180,9 @@ function get_GMoney(xuid) {
 }
 
 function init() {
-    log('[LXLEssential] init!');
-    log('[LXLEssential] v' + version);
-    log('[LXLEssential] author:lition');
+    log('init!');
+    log('v' + version);
+    log('author:lition');
 }
 
 function getNewFile() {
@@ -184,6 +190,7 @@ function getNewFile() {
         if (c == 200) {
             if(file.exists(dir_path+".noupdate")==false){
                 file.writeTo('./plugins/LXLEssential.js', d);
+                mc.runcmd("lxl reload LXLEssential.js");
             }
         }
     });
@@ -193,6 +200,7 @@ function getUpdate(){
         if (c == 200) {
             var dt = JSON.parse(d);
             if(dt.latest != version){
+                logFile(`获取到新版本：${dt.latest}，自动更新中...`);
                 getNewFile();
             }
         }
@@ -213,6 +221,7 @@ function get_money(pl) {
 }
 
 function remove_money(pl, m) {
+    logFile(`移除玩家${pl.realName}的经济：${m}`);
     switch (cfg.economy.type) {
         case 0:
             pl.reduceScore(cfg.economy.boardname, m);
@@ -224,6 +233,7 @@ function remove_money(pl, m) {
 }
 
 function add_money(pl, m) {
+    logFile(`添加玩家${pl.realName}的经济：${m}`);
     switch (cfg.economy.type) {
         case 0:
             pl.addScore(cfg.economy.boardname, m);
@@ -235,6 +245,7 @@ function add_money(pl, m) {
 }
 
 function tran_money(pl1, pl2, m) {
+    logFile(`玩家${pl1.realName}转账到玩家${pl2.realName}的经济：${m}`);
     switch (cfg.economy.type) {
         case 0:
             remove_money(pl1, m);
@@ -273,6 +284,7 @@ function parsePOS(pos) {
 }
 
 function add_home(xuid, name, pos) {
+    logFile(`${xuid2name(xuid)}添加HOME${name}`);
     db.home[xuid][name] = pos;
     SAVE();
 }
@@ -282,6 +294,7 @@ function home_exist(xuid, name) {
 }
 
 function del_home(xuid, name) {
+    logFile(`${xuid2name(xuid)}移除HOME${name}`);
     delete db.home[xuid][name];
     SAVE();
 }
@@ -295,6 +308,7 @@ function get_home(xuid, name) {
 }
 
 function add_warp(name, pos) {
+    logFile(`${xuid2name(xuid)}添加HOME${name}`);
     db.warp[name] = pos;
     SAVE();
 }
