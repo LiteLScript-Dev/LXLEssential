@@ -25,7 +25,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.8.9';
+const version = '1.3.9.0';
 const lang_version = 1.2;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -734,7 +734,7 @@ if (cfg.tool.kickall.enable) {
         mc.getOnlinePlayers().forEach(p => {
             if (p.isOP() == false)
                 p.kick(getLang(langtype.tool, 'kickall_message_when_kick'));
-        })
+        });
     }, 1);
 }
 
@@ -762,6 +762,9 @@ lxl.export((xuid,num)=>{
     add_money(pl,num);
     return true;
 },"lxless:addMoney");
+lxl.export((xuid)=>{
+    return get_money(mc.getPlayer(xuid));
+},"lxless:getMoney");
 lxl.export((xuid,num)=>{
     var pl = mc.getPlayer(xuid);
     if(pl==null  || isNaN(Number(num)))return false;
