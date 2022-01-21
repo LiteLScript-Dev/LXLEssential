@@ -25,7 +25,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.8.7';
+const version = '1.3.8.8';
 const lang_version = 1.2;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -728,8 +728,34 @@ init();
 
 lxl.export(get_home, "lxless:getHome");
 lxl.export(get_homes, "lxless:getHomes");
-lxl.export(() => { return db.warp }, "lxless:getWarps")
-lxl.export((nm) => { return db.warp[nm]; }, "lxless:getWarp");
 lxl.export(get_GMoney, "lxless:getOfflineMoney");
 lxl.export(xuid2name, "lxless:xuid2name");
-lxl.export(() => { return playerList; }, "lxless:getOnlinePlayers");
+lxl.export(() => {
+     return db.warp 
+}, "lxless:getWarps")
+lxl.export((nm) => {
+    if(mm)
+     return db.warp[nm];
+    else
+     return null;
+ }, "lxless:getWarp");
+lxl.export(() => { 
+    return playerList;
+}, "lxless:getOnlinePlayers");
+lxl.export((xuid,num)=>{
+    var pl = mc.getPlayer(xuid);
+    if(pl==null || isNaN(Number(num)))return false;
+    add_money(pl,num);
+    return true;
+},"lxless:addMoney");
+lxl.export((xuid,num)=>{
+    var pl = mc.getPlayer(xuid);
+    if(pl==null  || isNaN(Number(num)))return false;
+    remove_money(pl,num);
+    return true;
+},"lxless:removeMoney");
+lxl.export((xuid,num)=>{
+    if(isNaN(Number(num)))return false;
+    set_GMoney(xuid,num);
+    return true;
+},"lxless:setOfflineMoney");
