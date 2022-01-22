@@ -893,6 +893,7 @@ mc.regConsoleCmd("lxless", "LXLEssential", (arg) => {
             }else{
                 log(get_money(mc.getPlayer(arg[1])));
             }
+            break;
         case "reload":
             mc.runcmd("lxl reload LXLEssential.js");
             break;
