@@ -39,10 +39,15 @@ const xuiddb_path = dir_path + "xuiddb.json";
 const error_path = dir_path + "errors/";
 const log_path = dir_path + "log.txt";
 
-if (File.exists(dir_path) == false) {
-    File.mkdir(dir_path);
+function checkDir(path){
+    if (File.exists(path) == false) {
+        File.mkdir(path);
+    }
 }
 
+checkDir(dir_path);
+checkDir(error_path);
+checkDir(lang_dir);
 var db = { home: {}, warp: {} };
 
 var cfg = {
@@ -101,25 +106,17 @@ var cfg = {
     lang: 'zh_CN'
 };
 
-if (File.exists(config_path) == false) {
-    File.writeTo(config_path, JSON.stringify(cfg, null, '\t'));
+function checkFile(path,thing){
+    if (File.exists(path) == false) {
+        File.writeTo(config_path,thing);
+    }
 }
 
-if (file.exists(error_path) == false) {
-    file.mkdir(error_path);
-}
+checkFile(config_path, JSON.stringify(cfg, null, '\t'))
+checkFile(data_path, JSON.stringify(db, null, '\t'))
+checkFile(offlineMoney_path,JSON.stringify({}, null, '\t'))
+checkFile(xuiddb_path,JSON.stringify({}, null, '\t'))
 
-if (File.exists(data_path) == false) {
-    File.writeTo(data_path, JSON.stringify(db, null, '\t'));
-}
-
-if (File.exists(offlineMoney_path) == false) {
-    File.writeTo(offlineMoney_path, JSON.stringify({}, null, '\t'));
-}
-
-if (File.exists(xuiddb_path) == false) {
-    File.writeTo(xuiddb_path, JSON.stringify({}, null, '\t'));
-}
 
 const langtype = {
     home: 'HOME',
@@ -309,26 +306,28 @@ function get_money(pl) {
 }
 
 function remove_money(pl, m) {
+    if(typeof m != "number")return false;
     logFile(`移除玩家${pl.realName}的经济：${m}`);
     switch (cfg.economy.type) {
         case 0:
             pl.reduceScore(cfg.economy.boardname, m);
-            break;
+            return true;
         case 1:
             money.reduce(pl.xuid, m);
-            break;
+            return true;
     }
 }
 
 function add_money(pl, m) {
+    if(typeof m != "number")return false;
     logFile(`添加玩家${pl.realName}的经济：${m}`);
     switch (cfg.economy.type) {
         case 0:
             pl.addScore(cfg.economy.boardname, m);
-            break;
+            return true;
         case 1:
             money.add(pl.xuid, m);
-            break;
+            return true;
     }
 }
 
