@@ -249,27 +249,33 @@ function get_GMoney(xuid) {
 }
 
 function getLangFile() {
-    network.httpGet('https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/lang/' + cfg.lang + '.ini', (c, d) => {
+    network.httpGet(`https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/lang/${cfg.lang}.ini?download=false`, (c, d) => {
         if (c == 200) {
             file.writeTo('./plugins/LXLEssential/lang/' + cfg.lang + '.ini', d);
             logFile(`lang文件自动下载完成，即将重载插件`);
             mc.runcmd("lxl reload LXLEssential.js");
+        }else{
+            if(show)
+                log('语言包下载失败，code：'+c);
         }
     });
 }
 
 function getNewFile() {
-    network.httpGet('https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js', (c, d) => {
+    network.httpGet('https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/LXLEssential.js?download=false', (c, d) => {
         if (c == 200) {
             if (file.exists(dir_path + ".noupdate") == false) {
                 file.writeTo('./plugins/LXLEssential.js', d);
                 mc.runcmd("lxl reload LXLEssential.js");
+            }else{
+                if(show)
+                    log('自动更新失败，code：'+c);
             }
         }
     });
 }
 function getUpdate(show = false) {
-    network.httpGet('https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/api.json', (c, d) => {
+    network.httpGet('https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/api.json?download=false', (c, d) => {
         if (c == 200) {
             var dt = JSON.parse(d);
             if (dt.latest != version) {
@@ -279,6 +285,9 @@ function getUpdate(show = false) {
                 if (show)
                     logFile("当前即为最新版本。");
             }
+        }else{
+            if(show)
+                log('更新检测失败，code：'+c);
         }
     });
 }
