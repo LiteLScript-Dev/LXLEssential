@@ -884,9 +884,15 @@ mc.regConsoleCmd("lxless", "LXLEssential", (arg) => {
             log("正在检测更新...");
             getUpdate(true);
             break;
-        case "getmoney":
+        case "getoffmoney":
             log(get_GMoney(name2xuid(arg[1])));
             break;
+        case "getmoney":
+            if(mc.getPlayer(arg[1])==null){
+                log(`玩家 ${arg[1]} 不在线`)
+            }else{
+                log(get_money(mc.getPlayer(arg[1])));
+            }
         case "reload":
             mc.runcmd("lxl reload LXLEssential.js");
             break;
