@@ -1,5 +1,8 @@
 //LiteXLoader Dev Helper
-/// <reference path="c:\Users\amsq\.vscode\extensions\moxicat.lxldevhelper-0.1.4/Library/JS/Api.js" /> 
+/// <reference path="c:\Users\amsq\.vscode\extensions\moxicat.lxldevhelper-0.1.8/Library/JS/Api.js" /> 
+
+
+
 
 
 /*
@@ -834,7 +837,7 @@ lxl.export(() => {
     return db.warp
 }, "lxless:getWarps")
 lxl.export((nm) => {
-    if (mm)
+    if (nm)
         return db.warp[nm];
     else
         return null;
