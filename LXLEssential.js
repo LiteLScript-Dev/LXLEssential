@@ -1,5 +1,5 @@
 //LiteXLoader Dev Helper
-/// <reference path="c:\Users\Lition\.vscode\extensions\moxicat.lxldevhelper-0.1.7/Library/JS/Api.js" /> 
+/// <reference path="c:\Users\amsq\.vscode\extensions\moxicat.lxldevhelper-0.1.4/Library/JS/Api.js" /> 
 
 
 /*
@@ -25,7 +25,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.9.1';
+const version = '1.3.9.2';
 const lang_version = 1.2;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -33,8 +33,8 @@ const data_path = dir_path + "data.json";
 const config_path = dir_path + "config.json";
 const offlineMoney_path = dir_path + 'offlineMoney.json';
 const xuiddb_path = dir_path + "xuiddb.json";
-const error_path = dir_path+"errors";
-const log_path = dir_path+"log.txt";
+const error_path = dir_path + "errors/";
+const log_path = dir_path + "log.txt";
 
 if (File.exists(dir_path) == false) {
     File.mkdir(dir_path);
@@ -102,8 +102,8 @@ if (File.exists(config_path) == false) {
     File.writeTo(config_path, JSON.stringify(cfg, null, '\t'));
 }
 
-if(file.exists(error_path)==false){
-    file.mkdir(error_path)
+if (file.exists(error_path) == false) {
+    file.mkdir(error_path);
 }
 
 if (File.exists(data_path) == false) {
@@ -128,29 +128,74 @@ const langtype = {
     tool: 'TOOL'
 }
 
-var tmpcfg = JSON.parse(file.readFrom(config_path));
-db = JSON.parse(file.readFrom(data_path));
-var GMoney = JSON.parse(file.readFrom(offlineMoney_path));
-var xuiddb = JSON.parse(file.readFrom(xuiddb_path));
+var GMoney;
+var xuiddb;
 
-if (tmpcfg.version != cfg.version) {
-    logFile('config.json too old！！');
-    //throw new Error('配置文件版本过低，请删除config.json重新生成！！');
-    for(var i in tmpcfg){
-        if(i!="version"){
-            logFile(`自动更新配置文件项：${i}`);
-            cfg[i] = tmpcfg[i];
+function init() {
+    try{
+        var tmpcfg = JSON.parse(file.readFrom(config_path));
+        db = JSON.parse(file.readFrom(data_path));
+        GMoney = JSON.parse(file.readFrom(offlineMoney_path));
+        xuiddb = JSON.parse(file.readFrom(xuiddb_path));
+        if (tmpcfg.version != cfg.version) {
+            logFile('config.json too old！！');
+            //throw new Error('配置文件版本过低，请删除config.json重新生成！！');
+            for (var i in tmpcfg) {
+                if (i != "version") {
+                    logFile(`自动更新配置文件项：${i}`);
+                    switch(typeof tmpcfg[i]){
+                        case "string":
+                            cfg[i] = tmpcfg[i];
+                            log(`update ${i} >> ${tmpcfg[i]}`);
+                            break;
+                        case "object":
+                            for(var it in tmpcfg[i]){
+                                switch(typeof tmpcfg[i][it]){
+                                    case "object":
+                                        for(var item in tmpcfg[i][it]){
+                                            log(`update ${item} >> ${tmpcfg[i][it][item]}`);
+                                            cfg[i][it][item] = tmpcfg[i][it][item];
+                                        }
+                                        break;
+                                    default:
+                                        cfg[i][it] = tmpcfg[i][it];
+                                        break;
+                                }
+                            }
+                            break;
+                    }
+                }
+            }
+            logFile(`配置文件更新完毕，${tmpcfg.version} >> ${cfg.version}`);
+            File.writeTo(config_path, JSON.stringify(cfg, null, '\t'));
+        } else {
+            cfg = tmpcfg;
         }
+        log('init!');
+        log('v' + version);
+        log('author:lition');
+    }catch(err){
+        colorLog('red','配置文件初始化失败，使用默认配置');
+        getError(err);
+        //file.writeTo('error.txt',JSON.stringify({err:{name:err.name,stack:err.stack},cfg:file.readFrom(config_path)},null,'\t'));
     }
-    logFile(配`置文件更新完毕，${tmpcfg.version} >> ${cfg.version}`);
-    File.writeTo(config_path, JSON.stringify(cfg, null, '\t'));
-}else{
-    cfg = tmpcfg;
 }
+
+
+function getError(err){
+    colorLog('red',err.stack);
+    let now = system.getTimeObj();
+    let fi = `${error_path}${now.Y+'-'+now.M+'-'+now.D+'-'+now.h+'-'+now.m}.txt`;
+    file.writeTo(fi,JSON.stringify({err:{name:err.name,stack:err.stack},cfg:file.readFrom(config_path).replaceAll('\n','').replaceAll('\t',''),version,time:system.getTimeStr()},null,'\t'));
+    colorLog('red','错误信息已输出到'+fi);
+    colorLog('red','请加入925057221反馈给开发者');
+}
+
 
 if (file.exists(lang_dir + cfg.lang + '.ini') == false) {
     logFile('无法找到语言文件！！');
     logFile('unable to find the lang pack！！');
+    getLangFile();
     //return;
 }
 
@@ -159,19 +204,20 @@ var lang = new IniConfigFile(lang_dir + cfg.lang + '.ini');
 if (lang.getFloat('BASIC', 'version') < lang_version) {
     logFile('语言文件版本过低！！请更新！！');
     logFile('The language file version is too low!!! Please update!!!');
+    getLangFile();
 }
 
-function logFile(msg){
+function logFile(msg) {
     log(msg);
-    file.writeLine(log_path,`[${system.getTimeStr()}] ${msg}`)
+    file.writeLine(log_path, `[${system.getTimeStr()}] ${msg}`)
 }
 
 function xuid2name(xuid) {
     return xuiddb[xuid] == undefined ? xuid : xuiddb[xuid];
 }
 
-function name2xuid(n){
-    if(Object.values(xuiddb).indexOf(n) == -1){
+function name2xuid(n) {
+    if (Object.values(xuiddb).indexOf(n) == -1) {
         logFile(`未能找到玩家${n}的xuid数据`);
         return n;
     }
@@ -202,38 +248,42 @@ function get_GMoney(xuid) {
     return GMoney[xuid] == undefined ? 0 : GMoney[xuid];
 }
 
-function init() {
-    log('init!');
-    log('v' + version);
-    log('author:lition');
+function getLangFile() {
+    network.httpGet('https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/lang/' + cfg.lang + '.ini', (c, d) => {
+        if (c == 200) {
+            file.writeTo('./plugins/LXLEssential/lang/' + cfg.lang + '.ini', d);
+            logFile(`lang文件自动下载完成，即将重载插件`);
+            mc.runcmd("lxl reload LXLEssential.js");
+        }
+    });
 }
 
 function getNewFile() {
     network.httpGet('https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js', (c, d) => {
         if (c == 200) {
-            if(file.exists(dir_path+".noupdate")==false){
+            if (file.exists(dir_path + ".noupdate") == false) {
                 file.writeTo('./plugins/LXLEssential.js', d);
                 mc.runcmd("lxl reload LXLEssential.js");
             }
         }
     });
 }
-function getUpdate(show=false){
+function getUpdate(show = false) {
     network.httpGet('https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/api.json', (c, d) => {
         if (c == 200) {
             var dt = JSON.parse(d);
-            if(dt.latest != version){
+            if (dt.latest != version) {
                 logFile(`获取到新版本：${dt.latest}，自动更新中...`);
                 getNewFile();
-            }else{
-                if(show)
+            } else {
+                if (show)
                     logFile("当前即为最新版本。");
             }
         }
     });
 }
 
-setInterval(getUpdate, 10*60*1000);
+setInterval(getUpdate, 10 * 60 * 1000);
 
 function get_money(pl) {
     switch (cfg.economy.type) {
@@ -467,7 +517,7 @@ function go_warp(pl, dt) {
 mc.listen('onJoin', (pl) => {
     xuiddb[pl.xuid] = pl.realName;
     save_xuiddb();
-    playerList.push(pl.realName); 
+    playerList.push(pl.realName);
     if (db.home[pl.xuid] == undefined) db.home[pl.xuid] = {};
 });
 mc.listen('onLeft', (pl) => {
@@ -612,7 +662,7 @@ function randomNum(minNum, maxNum) {
 
 
 if (cfg.tpr.enable) {
-    mc.regPlayerCmd('tpr', getLang(langtype.tpr, 'tpr_command_describe'), (pl,arg) => {
+    mc.regPlayerCmd('tpr', getLang(langtype.tpr, 'tpr_command_describe'), (pl, arg) => {
         if (cfg.tpr.cost.enable) {
             if (get_money(pl) < cfg.tpr.cost.money) {
                 pl.tell(getLang(langtype.economy, 'economy_money_not_enough'));
@@ -644,7 +694,7 @@ function payofff(pl) {
     var sd = get_money(pl);
     var fm = mc.newCustomForm();
     var gm = []
-    ; Object.keys(GMoney).forEach(id => { gm.push(xuid2name(id)) });
+        ; Object.keys(GMoney).forEach(id => { gm.push(xuid2name(id)) });
     fm.addDropdown(getLang(langtype.economy, 'payoff_form_chose'), gm);
     fm.addInput(getLang(langtype.economy, 'payoff_form_input'), getLang(langtype.economy, 'pay_form_self_money', { "%money%": sd }));
     return fm;
@@ -770,50 +820,50 @@ lxl.export(get_home, "lxless:getHome");
 lxl.export(get_homes, "lxless:getHomes");
 lxl.export(get_GMoney, "lxless:getOfflineMoney");
 lxl.export(xuid2name, "lxless:xuid2name");
-lxl.export(name2xuid,"lxless:name2xuid");
+lxl.export(name2xuid, "lxless:name2xuid");
 lxl.export(() => {
-     return db.warp 
+    return db.warp
 }, "lxless:getWarps")
 lxl.export((nm) => {
-    if(mm)
-     return db.warp[nm];
+    if (mm)
+        return db.warp[nm];
     else
-     return null;
- }, "lxless:getWarp");
-lxl.export(() => { 
+        return null;
+}, "lxless:getWarp");
+lxl.export(() => {
     return playerList;
 }, "lxless:getOnlinePlayers");
-lxl.export((xuid,num)=>{
+lxl.export((xuid, num) => {
     var pl = mc.getPlayer(xuid);
-    if(pl==null || isNaN(Number(num)))return false;
-    add_money(pl,num);
+    if (pl == null || isNaN(Number(num))) return false;
+    add_money(pl, num);
     return true;
-},"lxless:addMoney");
-lxl.export((xuid)=>{
+}, "lxless:addMoney");
+lxl.export((xuid) => {
     return get_money(mc.getPlayer(xuid));
-},"lxless:getMoney");
-lxl.export((xuid,num)=>{
+}, "lxless:getMoney");
+lxl.export((xuid, num) => {
     var pl = mc.getPlayer(xuid);
-    if(pl==null  || isNaN(Number(num)))return false;
-    remove_money(pl,num);
+    if (pl == null || isNaN(Number(num))) return false;
+    remove_money(pl, num);
     return true;
-},"lxless:removeMoney");
-lxl.export((xuid,num)=>{
-    if(isNaN(Number(num)))return false;
-    set_GMoney(xuid,num);
+}, "lxless:removeMoney");
+lxl.export((xuid, num) => {
+    if (isNaN(Number(num))) return false;
+    set_GMoney(xuid, num);
     return true;
-},"lxless:setOfflineMoney");
+}, "lxless:setOfflineMoney");
 
 
-mc.regConsoleCmd("lxless","LXLEssential",(arg)=>{
-    if(arg.length==0){
+mc.regConsoleCmd("lxless", "LXLEssential", (arg) => {
+    if (arg.length == 0) {
         log("命令参数不足");
         return;
     }
-    switch(arg[0]){
+    switch (arg[0]) {
         case "xuid2name":
             let re = xuid2name(arg[1]);
-            if(re==arg[1])log("未找到此xuid对应的玩家");
+            if (re == arg[1]) log("未找到此xuid对应的玩家");
             else log(re);
             break;
         case "name2xuid":
