@@ -780,7 +780,7 @@ function balancetop(pl) {
     GMoney = sort_dict;
     var xuids = Object.keys(GMoney);
     xuids.forEach(xuid => dt += getLang(langtype.economy, 'balance_message_feedback', { '%player%': xuid2name(xuid), '%money%': get_GMoney(xuid) }) + '\n');
-    pl.tell(dt);
+    pl.sendForm(mc.newSimpleForm().setContent(dt),()=>{});
 }
 
 if (cfg.economy.enable) {
