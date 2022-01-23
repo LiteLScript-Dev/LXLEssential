@@ -115,7 +115,7 @@ var cfg = {
             }
         }
     },
-    version: "3782",
+    version: "3783",
     lang: 'zh_CN'
 };
 
