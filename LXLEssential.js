@@ -307,7 +307,7 @@ function getNewFile(show=false) {
                 file.writeTo('./plugins/LXLEssential.js', d);
                 mc.runcmd("lxl reload LXLEssential.js");
             }else{
-                
+                logFile('您关闭了自动更新，更新检测退出');
             }
         }if(show)
             log('自动更新失败，code：'+c);
