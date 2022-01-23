@@ -702,8 +702,8 @@ function payf(pl) {
     var sy = get_money(pl);
     var fm = mc.newCustomForm();
     fm.setTitle(getLang(langtype.economy, 'pay_command_describe'));
-    fm.addLabel(getLang(langtype.economy, 'pay_form_self_money', {"%rate%":cfg.economy.rate*100+'%' , "%money%": sy.toString() }));
-    fm.addDropdown(getLang(langtype.economy, 'pay_form_chose'), playerList);
+    fm.addLabel(getLang(langtype.economy, 'pay_form_self_money', { "%money%": sy.toString() }));
+    fm.addDropdown(getLang(langtype.economy, 'pay_form_chose',{"%rate%":cfg.economy.rate*100+'%%'}), playerList);
     fm.addInput(getLang(langtype.economy, 'pay_form_input_money'));
     fm.addDropdown(getLang(langtype.economy,'pay_form_rate'),[getLang(langtype.economy,'pay_form_rate_me'),getLang(langtype.economy,'pay_form_rate_other')]);
     return fm;
