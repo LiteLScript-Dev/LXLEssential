@@ -307,10 +307,10 @@ function getNewFile(show=false) {
                 file.writeTo('./plugins/LXLEssential.js', d);
                 mc.runcmd("lxl reload LXLEssential.js");
             }else{
-                if(show)
-                    log('自动更新失败，code：'+c);
+                
             }
-        }
+        }if(show)
+            log('自动更新失败，code：'+c);
     });
 }
 function getUpdate(show = false) {
@@ -320,7 +320,7 @@ function getUpdate(show = false) {
             setUpdate(dt.latest,dt.msg);
             if (dt.latest != version) {
                 logFile(`获取到新版本：${dt.latest}，自动更新中...`);
-                getNewFile();
+                getNewFile(show);
             } else {
                 if (show)
                     logFile("当前即为最新版本。");

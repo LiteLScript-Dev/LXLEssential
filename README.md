@@ -17,7 +17,9 @@
 
 - [x]  PAY
 
-- [ ]  Suicide
+- [x]  Suicide
+
+- [x] Notice
 
 - [x]  Custom configuration
 
