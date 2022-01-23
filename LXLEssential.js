@@ -96,7 +96,7 @@ var cfg = {
     economy: {
         enable: true,
         type: 0,
-        rate: 1.0,
+        rate: 0.1,
         boardname: "money"
     },
     tool: {
@@ -115,7 +115,7 @@ var cfg = {
             }
         }
     },
-    version: "3783",
+    version: "3784",
     lang: 'zh_CN'
 };
 
