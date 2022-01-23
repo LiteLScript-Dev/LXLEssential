@@ -1,5 +1,8 @@
 //LiteXLoader Dev Helper
-/// <reference path="c:\Users\amsq\.vscode\extensions\moxicat.lxldevhelper-0.1.8/Library/JS/Api.js" /> 
+/// <reference path="c:\Users\Lition\.vscode\extensions\moxicat.lxldevhelper-0.1.7/Library/JS/Api.js" /> 
+
+
+
 
 
 
@@ -28,7 +31,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.9.4fix';
+const version = '1.3.9.5';
 const lang_version = 1.3;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -403,7 +406,7 @@ function get_home(xuid, name) {
 }
 
 function add_warp(name, pos) {
-    logFile(`${xuid2name(xuid)}添加HOME${name}`);
+    logFile(`添加HOME${name}`);
     db.warp[name] = pos;
     SAVE();
 }
