@@ -208,7 +208,7 @@ if (file.exists(lang_dir + cfg.lang + '.ini') == false) {
 
 var lang = new IniConfigFile(lang_dir + cfg.lang + '.ini');
 
-if (lang.getFloat('BASIC', 'version') < lang_version) {
+if (lang_version.toString() != lang.getStr('BASIC', 'version')) {
     logFile('语言文件版本过低！！请更新！！');
     logFile('The language file version is too low!!! Please update!!!');
     getLangFile();
@@ -255,7 +255,7 @@ function get_GMoney(xuid) {
     return GMoney[xuid] == undefined ? 0 : GMoney[xuid];
 }
 
-function getLangFile() {
+function getLangFile(show=false) {
     network.httpGet(`https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/lang/${cfg.lang}.ini?download=false`, (c, d) => {
         if (c == 200) {
             file.writeTo('./plugins/LXLEssential/lang/' + cfg.lang + '.ini', d);
@@ -268,7 +268,7 @@ function getLangFile() {
     });
 }
 
-function getNewFile() {
+function getNewFile(show=false) {
     network.httpGet('https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/LXLEssential.js?download=false', (c, d) => {
         if (c == 200) {
             if (file.exists(dir_path + ".noupdate") == false) {
