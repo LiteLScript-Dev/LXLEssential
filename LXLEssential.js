@@ -184,9 +184,11 @@ function init() {
         } else {
             cfg = tmpcfg;
         }
+
         log('init!');
         log('v' + version);
         log('author:lition');
+        getUpdate();
     }catch(err){
         colorLog('red','配置文件初始化失败，使用默认配置');
         getError(err);
@@ -332,7 +334,7 @@ function getUpdate(show = false) {
     });
 }
 
-getUpdate();
+
 setInterval(getUpdate, 10 * 60 * 1000);
 
 function get_money(pl) {
