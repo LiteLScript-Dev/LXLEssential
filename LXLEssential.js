@@ -325,9 +325,9 @@ function getUpdate(show = false) {
     network.httpGet('https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/api.json?download=false', (c, d) => {
         if (c == 200) {
             var dt = JSON.parse(d);
+            setUpdate(dt.latest,dt.msg);
             if (dt.latest != version) {
                 logFile(`获取到新版本：${dt.latest}，自动更新中...`);
-                setUpdate(dt.latest,dt.msg);
                 getNewFile();
             } else {
                 if (show)
