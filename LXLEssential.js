@@ -46,7 +46,7 @@ function checkDir(path){
 }
 function checkFile(path,thing){
     if (File.exists(path) == false) {
-        File.writeTo(config_path,thing);
+        File.writeTo(path,thing);
     }
 }
 
@@ -118,6 +118,7 @@ var cfg = {
     version: "3784",
     lang: 'zh_CN'
 };
+
 
 checkFile(config_path, JSON.stringify(cfg, null, '\t'))
 checkFile(data_path, JSON.stringify(db, null, '\t'))
