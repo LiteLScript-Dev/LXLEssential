@@ -106,6 +106,13 @@ var cfg = {
         },
         kickall: {
             enable: true
+        },
+        suicide:{
+            enable:true,
+            cost: {
+                enable: true,
+                money: 100
+            }
         }
     },
     version: "3782",
@@ -830,6 +837,19 @@ if (cfg.tool.kickall.enable) {
                 p.kick(getLang(langtype.tool, 'kickall_message_when_kick'));
         });
     }, 1);
+}
+
+if(cfg.tool.suicide.enable){
+    mc.regPlayerCmd('suicide',getLang(langtype.tool,'suicide_command_describe'),(pl,arg)=>{
+        if(cfg.tool.suicide.cost.enable){
+            if (cfg.tool.suicide.cost.money > get_money(pl)) {
+                pl.tell(getLang(langtype.economy, 'economy_money_not_enough'));
+                return;
+            }
+            remove_money(pl,cfg.tool.suicide.cost.money);
+        }
+        pl.kill();
+    });
 }
 
 init();
