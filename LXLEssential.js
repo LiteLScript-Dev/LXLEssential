@@ -23,7 +23,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.9.7';
+const version = '1.3.9.8';
 const lang_version = 1.5;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
