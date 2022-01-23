@@ -203,11 +203,11 @@ function init() {
 }
 
 function setUpdate(v,msg){
+    update.msg = msg;
     if(update.v != v){
         update.v = v;
-        update.msg = msg;
-        save_update();
     }
+    save_update();
 }
 
 function doneUpdate(v){
