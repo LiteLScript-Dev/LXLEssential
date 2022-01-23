@@ -1,13 +1,5 @@
 //LiteXLoader Dev Helper
 /// <reference path="c:\Users\Lition\.vscode\extensions\moxicat.lxldevhelper-0.1.8/Library/JS/Api.js" /> 
-
-
-
-
-
-
-
-
 /*
  * 
  *
@@ -31,7 +23,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.9.5';
+const version = '1.3.9.6';
 const lang_version = 1.5;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -340,6 +332,7 @@ function getUpdate(show = false) {
     });
 }
 
+getUpdate();
 setInterval(getUpdate, 10 * 60 * 1000);
 
 function get_money(pl) {
@@ -510,17 +503,26 @@ function delhomeF(xuid) {
 
 function delhome(pl, dt) {
     if (dt == null) return;
-    var hname = Object.keys(get_homes(pl.xuid))[dt];
-    del_home(pl.xuid, hname);
-    pl.tell(getLang(langtype.home, 'home_message_del_success'));
+    try{
+        var hname = Object.keys(get_homes(pl.xuid))[dt];
+        del_home(pl.xuid, hname);
+        pl.tell(getLang(langtype.home, 'home_message_del_success'));
+    }catch(err){
+        getError(err);
+    }
+
 }
 
 function go_home(pl, dt) {
     if (dt == null) return;
-    var hname = Object.keys(get_homes(pl.xuid))[dt];
-    var hm = get_home(pl.xuid, hname);
-    pl.teleport(hm.x, hm.y, hm.z, hm.did);
-    pl.tell(getLang(langtype.home, 'home_message_to_home', { "%home%": hname }));
+    try{
+        var hname = Object.keys(get_homes(pl.xuid))[dt];
+        var hm = get_home(pl.xuid, hname);
+        pl.teleport(hm.x, hm.y, hm.z, hm.did);
+        pl.tell(getLang(langtype.home, 'home_message_to_home', { "%home%": hname }));
+    }catch(err){
+        getError(err);
+    }
 }
 
 if (cfg.warp.enable) {
@@ -620,11 +622,9 @@ function askTP(mode, targrt_xuid, apply_name) {
             return;
         }
     }
-    for (var i in timeout) {
-        if (timeout[i] == targrt_xuid) {
-            mc.getPlayer(apply_name).tell(getLang(langtype.tpa, 'tpa_message_watting_other'));
-            return;
-        }
+    if(Object.values(timeout).indexOf(targrt_xuid)!=-1){
+        mc.getPlayer(apply_name).tell(getLang(langtype.tpa, 'tpa_message_watting_other'));
+        return;
     }
     timeout[apply_name] = targrt_xuid;
     setTimeout(() => {
