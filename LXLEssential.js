@@ -578,6 +578,11 @@ function go_warp(pl, dt) {
 }
 
 mc.listen('onJoin', (pl) => {
+    try{
+
+    }catch(err){
+
+    }
     xuiddb[pl.xuid] = pl.realName;
     save_xuiddb();
     playerList.push(pl.realName);
@@ -668,8 +673,8 @@ if (cfg.tpa.enable) {
                 pl.tell(getLang(langtype.economy, 'economy_money_not_enough'));
                 return;
             }
+            remove_money(pl, cfg.tpa.cost.money);
         }
-        remove_money(pl, cfg.tpa.cost.money);
         pl.sendForm(tpaf(), tpa);
     });
     mc.regPlayerCmd('tpaall', getLang(langtype.tpa, 'tpaall_command_describe'), (pl, arg) => {
