@@ -1,5 +1,5 @@
 //LiteXLoader Dev Helper
-/// <reference path="c:\Users\Lition\.vscode\extensions\moxicat.lxldevhelper-0.1.7/Library/JS/Api.js" /> 
+/// <reference path="c:\Users\Lition\.vscode\extensions\moxicat.lxldevhelper-0.1.8/Library/JS/Api.js" /> 
 
 
 
@@ -32,7 +32,7 @@
  */
 
 const version = '1.3.9.5';
-const lang_version = 1.3;
+const lang_version = 1.5;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
 const data_path = dir_path + "data.json";
@@ -40,6 +40,7 @@ const config_path = dir_path + "config.json";
 const offlineMoney_path = dir_path + 'offlineMoney.json';
 const xuiddb_path = dir_path + "xuiddb.json";
 const error_path = dir_path + "errors/";
+const notice_path = dir_path+'notice.json';
 const log_path = dir_path + "log.txt";
 
 function checkDir(path){
@@ -116,9 +117,12 @@ var cfg = {
                 enable: true,
                 money: 100
             }
+        },
+        notice:{
+            enable:true
         }
     },
-    version: "3784",
+    version: "3786",
     lang: 'zh_CN'
 };
 
@@ -127,6 +131,7 @@ checkFile(config_path, JSON.stringify(cfg, null, '\t'))
 checkFile(data_path, JSON.stringify(db, null, '\t'))
 checkFile(offlineMoney_path,JSON.stringify({}, null, '\t'))
 checkFile(xuiddb_path,JSON.stringify({}, null, '\t'))
+checkFile(notice_path,JSON.stringify({v:0,page:['这是一篇测试公告'],done:{}}));
 
 
 const langtype = {
@@ -141,6 +146,7 @@ const langtype = {
 
 var GMoney;
 var xuiddb;
+var notice;
 
 function init() {
     try{
@@ -148,6 +154,7 @@ function init() {
         db = JSON.parse(file.readFrom(data_path));
         GMoney = JSON.parse(file.readFrom(offlineMoney_path));
         xuiddb = JSON.parse(file.readFrom(xuiddb_path));
+        notice = JSON.parse(file.readFrom(notice_path));
         if (tmpcfg.version != cfg.version) {
             logFile('config.json too old！！');
             //throw new Error('配置文件版本过低，请删除config.json重新生成！！');
@@ -239,6 +246,10 @@ function save_xuiddb() {
     File.writeTo(xuiddb_path, JSON.stringify(xuiddb, null, '\t'));
 }
 
+function save_notice(){
+    file.writeTo(notice_path,JSON.stringify(notice,null,'\t'));
+}
+
 function save_GMoney() {
     File.writeTo(offlineMoney_path, JSON.stringify(GMoney, null, '\t'));
 }
@@ -257,6 +268,12 @@ function add_GMoney(xuid, m) {
 
 function get_GMoney(xuid) {
     return GMoney[xuid] == undefined ? 0 : GMoney[xuid];
+}
+
+function add_notice_view(xuid,v){
+    if(notice.done[v] ==undefined) notice.done[v] = [];
+    notice.done[v].push(xuid);
+    save_notice();
 }
 
 function getLangFile(show=false) {
@@ -853,6 +870,48 @@ if(cfg.tool.suicide.enable){
             remove_money(pl,cfg.tool.suicide.cost.money);
         }
         pl.kill();
+    });
+}
+
+function setNoticeForm(){
+    var fm = mc.newCustomForm();
+    fm.addDropdown(getLang(langtype.tool,'notice_setform_drop_chose'),[getLang(langtype.tool,'notice_setform_drop_add'),getLang(langtype.tool,'notice_setform_drop_remove')]);
+    fm.addDropdown(getLang(langtype.tool,'notice_setform_drop_chose_del'),notice.page);
+    fm.addInput(getLang(langtype.tool,'notice_setform_input'));
+    return fm;
+}
+
+function setNoticeFunc(pl,dt){
+    if(dt==null)return;
+    switch(dt[0]){
+        case 0:
+            notice.v+=1;
+            notice.page.push(dt[2]);
+            save_notice();
+            break;
+        case 1:
+            notice.page.remove(notice.page[dt[1]]);
+            notice.v+=1;
+            save_notice();
+            break;
+    }
+    pl.tell(getLang(langtype.tool,'notice_message_setdone'));
+}
+
+if(cfg.tool.notice.enable){
+    mc.regPlayerCmd('setnotice',getLang(langtype.tool,'setnotice_command_describe'),(pl,arg)=>{
+        pl.sendForm(setNoticeForm(),setNoticeFunc);
+    },1);
+    mc.regPlayerCmd('notice',getLang(langtype.tool,'notice_command_describe'),(pl,arg)=>{
+        pl.sendForm(mc.newCustomForm().setTitle(getLang(langtype.tool,'notice_form_title')).addLabel(notice.page.join('\n')),(pl2,dt)=>{})
+    })
+    mc.listen('onJoin',(pl)=>{
+        if(notice.done[notice.v]==undefined) notice.done[notice.v]=[];
+        if(notice.done[notice.v].indexOf(pl.xuid)==-1){
+            pl.sendForm(mc.newCustomForm().setTitle(getLang(langtype.tool,'notice_form_title')).addLabel(notice.page.join('\n')),(pl2,dt)=>{
+                add_notice_view(pl2.xuid,notice.v);
+            })
+        };
     });
 }
 
