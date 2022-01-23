@@ -406,7 +406,7 @@ function get_home(xuid, name) {
 }
 
 function add_warp(name, pos) {
-    logFile(`添加HOME${name}`);
+    logFile(`添加WARP${name}`);
     db.warp[name] = pos;
     SAVE();
 }
