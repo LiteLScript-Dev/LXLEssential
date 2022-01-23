@@ -42,6 +42,7 @@ const xuiddb_path = dir_path + "xuiddb.json";
 const error_path = dir_path + "errors/";
 const notice_path = dir_path+'notice.json';
 const log_path = dir_path + "log.txt";
+const update_path = dir_path+'update.json';
 
 function checkDir(path){
     if (File.exists(path) == false) {
@@ -132,7 +133,7 @@ checkFile(data_path, JSON.stringify(db, null, '\t'))
 checkFile(offlineMoney_path,JSON.stringify({}, null, '\t'))
 checkFile(xuiddb_path,JSON.stringify({}, null, '\t'))
 checkFile(notice_path,JSON.stringify({v:0,page:['这是一篇测试公告'],done:{}}));
-
+checkFile(update_path,JSON.stringify({v:version,done:[],msg:[]}));
 
 const langtype = {
     home: 'HOME',
@@ -147,6 +148,7 @@ const langtype = {
 var GMoney;
 var xuiddb;
 var notice;
+var update;
 
 function init() {
     try{
@@ -155,6 +157,7 @@ function init() {
         GMoney = JSON.parse(file.readFrom(offlineMoney_path));
         xuiddb = JSON.parse(file.readFrom(xuiddb_path));
         notice = JSON.parse(file.readFrom(notice_path));
+        update = JSON.parse(file.readFrom(update_path));
         if (tmpcfg.version != cfg.version) {
             logFile('config.json too old！！');
             //throw new Error('配置文件版本过低，请删除config.json重新生成！！');
@@ -199,6 +202,22 @@ function init() {
     }
 }
 
+function setUpdate(v,msg){
+    if(update.v != v){
+        update.v = v;
+        update.msg = msg;
+        save_update();
+    }
+}
+
+function doneUpdate(v){
+    update.done.push(v);
+    save_update();
+}
+
+function save_update(){
+    file.writeTo(update_path,JSON.stringify(update));
+}
 
 function getError(err){
     colorLog('red',err.stack);
@@ -308,6 +327,7 @@ function getUpdate(show = false) {
             var dt = JSON.parse(d);
             if (dt.latest != version) {
                 logFile(`获取到新版本：${dt.latest}，自动更新中...`);
+                setUpdate(dt.latest,dt.msg);
                 getNewFile();
             } else {
                 if (show)
@@ -558,6 +578,13 @@ mc.listen('onJoin', (pl) => {
     save_xuiddb();
     playerList.push(pl.realName);
     if (db.home[pl.xuid] == undefined) db.home[pl.xuid] = {};
+    if(update.done.indexOf(version)==-1){
+        if(pl.isOP()){
+            pl.sendForm(mc.newCustomForm().setTitle('LXLEssential - update').addLabel(update.msg.join('\n')),(pl)=>{
+                doneUpdate(version);
+            });
+        }
+    }
 });
 mc.listen('onLeft', (pl) => {
     playerList.remove(pl.realName);
