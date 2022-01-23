@@ -29,7 +29,7 @@
  */
 
 const version = '1.3.9.3';
-const lang_version = 1.2;
+const lang_version = 1.3;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
 const data_path = dir_path + "data.json";
@@ -42,6 +42,11 @@ const log_path = dir_path + "log.txt";
 function checkDir(path){
     if (File.exists(path) == false) {
         File.mkdir(path);
+    }
+}
+function checkFile(path,thing){
+    if (File.exists(path) == false) {
+        File.writeTo(config_path,thing);
     }
 }
 
@@ -91,6 +96,7 @@ var cfg = {
     economy: {
         enable: true,
         type: 0,
+        rate: 1.0,
         boardname: "money"
     },
     tool: {
@@ -105,12 +111,6 @@ var cfg = {
     version: "3782",
     lang: 'zh_CN'
 };
-
-function checkFile(path,thing){
-    if (File.exists(path) == false) {
-        File.writeTo(config_path,thing);
-    }
-}
 
 checkFile(config_path, JSON.stringify(cfg, null, '\t'))
 checkFile(data_path, JSON.stringify(db, null, '\t'))
@@ -695,9 +695,10 @@ function payf(pl) {
     var sy = get_money(pl);
     var fm = mc.newCustomForm();
     fm.setTitle(getLang(langtype.economy, 'pay_command_describe'));
-    fm.addLabel(getLang(langtype.economy, 'pay_form_self_money', { "%money%": sy.toString() }));
+    fm.addLabel(getLang(langtype.economy, 'pay_form_self_money', {"%rate%":cfg.economy.rate*100+'%' , "%money%": sy.toString() }));
     fm.addDropdown(getLang(langtype.economy, 'pay_form_chose'), playerList);
     fm.addInput(getLang(langtype.economy, 'pay_form_input_money'));
+    fm.addDropdown(getLang(langtype.economy,'pay_form_rate'),[getLang(langtype.economy,'pay_form_rate_me'),getLang(langtype.economy,'pay_form_rate_other')]);
     return fm;
 }
 
@@ -739,11 +740,7 @@ function pay(pl, dt) {
         pl.tell(getLang(langtype.economy, 'pay_message_connot_pay_self'));
         return;
     }
-    if (isNaN(Number(dt[2]))) {
-        pl.tell(getLang(langtype.economy, 'pay_message_input_error'))
-        return;
-    }
-    if (Number(dt[2]) < 1) {
+    if (isNaN(Number(dt[2])) || Number(dt[2]) < 1) {
         pl.tell(getLang(langtype.economy, 'pay_message_input_error'))
         return;
     }
@@ -751,19 +748,29 @@ function pay(pl, dt) {
         pl.tell(getLang(langtype.economy, 'economy_money_not_enough'));
         return;
     }
-    tran_money(pl, topl, Number(dt[2]));
-    pl.tell(getLang(langtype.economy, 'pay_message_pay_success', { '%player%': topl.name, '%money%': Number(dt[2]) }));
-    topl.tell(getLang(langtype.economy, 'pay_message_receive', { '%player%': pl.name, '%money%': Number(dt[2]) }));
+    let my = Number(dt[2]);
+    let rate = Math.floor(my * cfg.economy.rate);
+    switch(dt[3]){
+        case 0:
+            remove_money(pl,rate);
+            break;
+        case 1:
+            my -= rate;
+            break;       
+    }
+    tran_money(pl, topl, my);
+    pl.tell(getLang(langtype.economy, 'pay_message_pay_success', { '%player%': topl.name, '%money%': my }));
+    topl.tell(getLang(langtype.economy, 'pay_message_receive', { '%player%': pl.name, '%money%': my }));
 }
 
-function plush_all_money() {
+function flush_all_money() {
     mc.getOnlinePlayers().forEach(pl => {
         set_GMoney(pl.xuid, get_money(pl));
     });
 }
 
 function balancetop(pl) {
-    plush_all_money();
+    flush_all_money();
     var dt = '';
     const sort_values = Object.values(GMoney).sort((a, b) => a - b)
     //  console.log(sort_values)
