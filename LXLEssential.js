@@ -23,8 +23,8 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.9.8';
-const lang_version = 1.5;
+const version = '1.3.9.9';
+const lang_version = 1.6;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
 const data_path = dir_path + "data.json";
@@ -184,7 +184,6 @@ function init() {
         } else {
             cfg = tmpcfg;
         }
-
         log('init!');
         log('v' + version);
         log('author:lition');
@@ -192,6 +191,9 @@ function init() {
     }catch(err){
         colorLog('red','配置文件初始化失败，使用默认配置');
         getError(err);
+        setInterval(() => {
+            log('配置文件加载失败！！请检查json格式是否正确');
+        }, 3000);
         //file.writeTo('error.txt',JSON.stringify({err:{name:err.name,stack:err.stack},cfg:file.readFrom(config_path)},null,'\t'));
     }
 }
@@ -351,6 +353,10 @@ function get_money(pl) {
 function remove_money(pl, m) {
     if(typeof m != "number")return false;
     logFile(`移除玩家${pl.realName}的经济：${m}`);
+    if(get_money(pl) <= m){
+        log(`移除${pl.realName}经济时发生异常：无法移除低于0的经济值`);
+        return;
+    }
     switch (cfg.economy.type) {
         case 0:
             pl.reduceScore(cfg.economy.boardname, m);
@@ -833,23 +839,27 @@ function flush_all_money() {
 
 function balancetop(pl) {
     flush_all_money();
-    var dt = '';
-    const sort_values = Object.values(GMoney).sort((a, b) => a - b)
-    //  console.log(sort_values)
-    const sort_dict = {}
-    for (let i of sort_values.reverse()) {
-        for (let key in GMoney) {
-            //  console.log(i,key)
-            if (GMoney[key] === i) {
-                sort_dict[key] = i;
-                delete GMoney[key];
+    try{
+        var dt = '';
+        const sort_values = Object.values(GMoney).sort((a, b) => a - b)
+        //  console.log(sort_values)
+        const sort_dict = {}
+        for (let i of sort_values.reverse()) {
+            for (let key in GMoney) {
+                //  console.log(i,key)
+                if (GMoney[key] === i) {
+                    sort_dict[key] = i;
+                    delete GMoney[key];
+                }
             }
         }
+        GMoney = sort_dict;
+        var xuids = Object.keys(GMoney);
+        xuids.forEach(xuid => dt += getLang(langtype.economy, 'balance_message_feedback', { '%player%': xuid2name(xuid), '%money%': get_GMoney(xuid) }) + '\n');
+        pl.sendForm(mc.newSimpleForm().setContent(dt),()=>{});
+    }catch(err){
+        getError(err);
     }
-    GMoney = sort_dict;
-    var xuids = Object.keys(GMoney);
-    xuids.forEach(xuid => dt += getLang(langtype.economy, 'balance_message_feedback', { '%player%': xuid2name(xuid), '%money%': get_GMoney(xuid) }) + '\n');
-    pl.sendForm(mc.newSimpleForm().setContent(dt),()=>{});
 }
 
 if (cfg.economy.enable) {
@@ -876,7 +886,7 @@ function getposf() {
 function getpos(pl, dt) {
     if (dt == null) return;
     var tpl = mc.getPlayer(playerList[dt]);
-    pl.tell(getLang(langtype.tool, 'getpos_message_feedback', { '%player%': tpl.name, '%x%': tpl.pos.x, '%y%': tpl.pos.y, '%z%': tpl.pos.z, "%dim%": tpl.pos.dim }))
+    pl.tell(getLang(langtype.tool, 'getpos_message_feedback', { '%player%': tpl.name, '%x%': tpl.pos.x.toFixed(0), '%y%': tpl.pos.y.toFixed(0), '%z%': tpl.pos.z.toFixed(0), "%dim%": tpl.pos.dim }))
 }
 
 if (cfg.tool.getpos.enable) {
@@ -886,12 +896,25 @@ if (cfg.tool.getpos.enable) {
 }
 
 if (cfg.tool.kickall.enable) {
+    var iskicking = false;
     mc.regPlayerCmd('kickall', getLang(langtype.tool, 'kickall_command_discribe'), (pl, arg) => {
-        mc.getOnlinePlayers().forEach(p => {
-            if (p.isOP() == false)
-                p.kick(getLang(langtype.tool, 'kickall_message_when_kick'));
-        });
+        if(iskicking){
+            iskicking =false;
+            pl.tell(langtype.tool,'kickall_message_when_close');
+        }else{
+            mc.getOnlinePlayers().forEach(p => {
+                if (p.isOP() == false)
+                    p.kick(getLang(langtype.tool, 'kickall_message_when_kick'));
+            });
+            pl.tell(getLang(langtype.tool,'kickall_message_when_open'));
+            iskicking =true;
+        }
     }, 1);
+    mc.listen('onJoin',(pl)=>{
+        if(iskicking){
+            pl.disconnect(getLang(langtype.tool,'kickall_message_when_join'));
+        }
+    });
 }
 
 if(cfg.tool.suicide.enable){
@@ -915,17 +938,27 @@ function setNoticeForm(){
     return fm;
 }
 
+function flushNotice(){
+    for(var i in notice.done){
+        if(i.toString() != notice.v.toString()){
+            delete notice.done[i];
+        }
+    }
+}
+
 function setNoticeFunc(pl,dt){
     if(dt==null)return;
     switch(dt[0]){
         case 0:
             notice.v+=1;
             notice.page.push(dt[2]);
+            flushNotice();
             save_notice();
             break;
         case 1:
             notice.page.remove(notice.page[dt[1]]);
             notice.v+=1;
+            flushNotice();
             save_notice();
             break;
     }
@@ -940,12 +973,16 @@ if(cfg.tool.notice.enable){
         pl.sendForm(mc.newCustomForm().setTitle(getLang(langtype.tool,'notice_form_title')).addLabel(notice.page.join('\n')),(pl2,dt)=>{})
     })
     mc.listen('onJoin',(pl)=>{
-        if(notice.done[notice.v]==undefined) notice.done[notice.v]=[];
-        if(notice.done[notice.v].indexOf(pl.xuid)==-1){
-            pl.sendForm(mc.newCustomForm().setTitle(getLang(langtype.tool,'notice_form_title')).addLabel(notice.page.join('\n')),(pl2,dt)=>{
-                add_notice_view(pl2.xuid,notice.v);
-            })
-        };
+        try{
+            if(notice.done[notice.v]==undefined) notice.done[notice.v]=[];
+            if(notice.done[notice.v].indexOf(pl.xuid)==-1){
+                pl.sendForm(mc.newCustomForm().setTitle(getLang(langtype.tool,'notice_form_title')).addLabel(notice.page.join('\n')),(pl2,dt)=>{
+                    add_notice_view(pl2.xuid,notice.v);
+                });
+            };
+        }catch(err){
+            getError(err);
+        }
     });
 }
 
@@ -1028,4 +1065,4 @@ mc.regConsoleCmd("lxless", "LXLEssential", (arg) => {
             log("未知命令");
             break;
     }
-})
+});
