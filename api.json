@@ -1,7 +1,7 @@
 {
-    "latest": "1.3.9.9",
+    "latest": "1.3.9.9fix",
     "msg": [
-        "version - 1.3.9.9",
+        "version - 1.3.9.9fix",
         "更新了kickall组件",
         "执行kickall会设置服务器为维护模式，阻止所有非OP玩家进入",
         "再一次执行kickall关闭此模式",

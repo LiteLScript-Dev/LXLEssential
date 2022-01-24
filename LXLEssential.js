@@ -23,7 +23,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.9.9';
+const version = '1.3.9.9fix';
 const lang_version = 1.6;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -900,7 +900,7 @@ if (cfg.tool.kickall.enable) {
     mc.regPlayerCmd('kickall', getLang(langtype.tool, 'kickall_command_discribe'), (pl, arg) => {
         if(iskicking){
             iskicking =false;
-            pl.tell(langtype.tool,'kickall_message_when_close');
+            pl.tell(getLang(langtype.tool,'kickall_message_when_close'));
         }else{
             mc.getOnlinePlayers().forEach(p => {
                 if (p.isOP() == false)
