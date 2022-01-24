@@ -219,7 +219,7 @@ function getError(err){
     colorLog('red',err.stack);
     let now = system.getTimeObj();
     let fi = `${error_path}${now.Y+'-'+now.M+'-'+now.D+'-'+now.h+'-'+now.m}.txt`;
-    file.writeTo(fi,JSON.stringify({err:{name:err.name,stack:err.stack},cfg:file.readFrom(config_path).replaceAll('\n','').replaceAll('\t',''),version,time:system.getTimeStr()},null,'\t'));
+    file.writeTo(fi,JSON.stringify({err:{name:err.name,stack:err.stack},PList:lxl.listPlugins(),cfg:file.readFrom(config_path).replaceAll('\n','').replaceAll('\t',''),version,time:system.getTimeStr()},null,'\t'));
     colorLog('red','错误信息已输出到'+fi);
     colorLog('red','请加入925057221反馈给开发者');
 }
@@ -1026,6 +1026,38 @@ lxl.export((xuid, num) => {
     return true;
 }, "lxless:setOfflineMoney");
 
+mc.regPlayerCmd('lxless','LXLEssential',(pl,arg)=>{
+    switch(arg.length){
+        case 0:
+            pl.tell('unknow command, input /lxless help to see all the commands');
+            break;
+        case 1:
+            switch(arg[0]){
+                case 'version':
+                case "v":
+                    pl.tell(`server is running on LXLEssential(v${version})`);
+                    break;
+                case "update":
+                    pl.tell('try update done');
+                    getUpdate();
+                    break;
+                case "reload":
+                    mc.runcmd('lxless reload');
+                    break;
+                case "help":
+                    var help = `/lxless v - view the version of the LXLEssential\n/lxless update - try update\n/lxless reload - reload the plugin`;
+                    pl.tell(help);
+                    break;
+                default:
+                    pl.tell('unknow command, input /lxless help to see all the commands');
+                    break;
+            }
+            break;
+        default:
+            pl.tell('unknow command, input /lxless help to see all the commands');
+            break;
+    }
+});
 
 mc.regConsoleCmd("lxless", "LXLEssential", (arg) => {
     if (arg.length == 0) {
