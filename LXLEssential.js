@@ -747,8 +747,8 @@ if (cfg.tpr.enable) {
             }
             remove_money(pl, cfg.tpr.cost.money);
         }
-        var x = Math.floor(randomNum(pl.pos.x.toFixed(0)+3000,pl.pos.x.toFixed(0)-3000));
-        var z = Math.floor(randomNum(pl.pos.z.toFixed(0)+3000,pl.pos.z.toFixed(0)-3000));
+        var x = Math.floor(randomNum(pl.pos.x.toFixed(0)-3000,pl.pos.x.toFixed(0)+3000));
+        var z = Math.floor(randomNum(pl.pos.z.toFixed(0)-3000,pl.pos.z.toFixed(0)+3000));
         var dim = pl.pos.dimid;
         var y = (dim == 0 ? 360 : (dim == 1 ? 90 : (dim == 2 ? 200 : 0))) + 0.5;
         mc.runcmd("effect \"" + pl.name + "\" resistance 60 5 true");
