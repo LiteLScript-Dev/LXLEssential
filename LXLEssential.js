@@ -23,7 +23,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.3.9.9fix';
+const version = '1.4.0.0';
 const lang_version = 1.6;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -354,8 +354,7 @@ function remove_money(pl, m) {
     if(typeof m != "number")return false;
     logFile(`移除玩家${pl.realName}的经济：${m}`);
     if(get_money(pl) <= m){
-        log(`移除${pl.realName}经济时发生异常：无法移除低于0的经济值`);
-        return;
+        throw new Error(`移除${pl.realName}经济时发生异常：无法移除低于0的经济值`);
     }
     switch (cfg.economy.type) {
         case 0:
@@ -739,7 +738,6 @@ function randomNum(minNum, maxNum) {
 }
 
 
-
 if (cfg.tpr.enable) {
     mc.regPlayerCmd('tpr', getLang(langtype.tpr, 'tpr_command_describe'), (pl, arg) => {
         if (cfg.tpr.cost.enable) {
@@ -749,11 +747,13 @@ if (cfg.tpr.enable) {
             }
             remove_money(pl, cfg.tpr.cost.money);
         }
-        var x = randomNum(pl.pos.x + 5000, pl.pos - 5000);
-        var z = randomNum(pl.pos.z + 5000, pl.pos.z - 5000);
-        var y = [128, 100, 200][pl.pos.dimid];
-        pl.teleport(x, y, z, pl.pos.dimid);
-        mc.runcmdEx("effect \"" + pl.realName + "\" slow_falling 15 15 true");
+        var x = Math.floor(randomNum(pl.pos.x.toFixed(0)+3000,pl.pos.x.toFixed(0)-3000));
+        var z = Math.floor(randomNum(pl.pos.z.toFixed(0)+3000,pl.pos.z.toFixed(0)-3000));
+        var dim = pl.pos.dimid;
+        var y = (dim == 0 ? 360 : (dim == 1 ? 90 : (dim == 2 ? 200 : 0))) + 0.5;
+        mc.runcmd("effect \"" + pl.name + "\" resistance 60 5 true");
+        pl.teleport(mc.newFloatPos(x,y,z,dim));
+        //mc.runcmdEx("effect \"" + pl.realName + "\" slow_falling 15 15 true");
         pl.tell(getLang(langtype.tpr, 'tpr_message_success'));
     });
 }
