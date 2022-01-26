@@ -588,26 +588,31 @@ function go_warp(pl, dt) {
 
 mc.listen('onJoin', (pl) => {
     try{
-
-    }catch(err){
-
-    }
-    xuiddb[pl.xuid] = pl.realName;
-    save_xuiddb();
-    playerList.push(pl.realName);
-    if (db.home[pl.xuid] == undefined) db.home[pl.xuid] = {};
-    if(update.done.indexOf(version)==-1){
-        if(pl.isOP()){
-            pl.sendForm(mc.newCustomForm().setTitle('LXLEssential - update').addLabel(update.msg.join('\n')),(pl)=>{
-                doneUpdate(version);
-            });
+        xuiddb[pl.xuid] = pl.realName;
+        save_xuiddb();
+        playerList.push(pl.realName);
+        if (db.home[pl.xuid] == undefined) db.home[pl.xuid] = {};
+        if(update.done.indexOf(version)==-1){
+            if(pl.isOP()){
+                pl.sendForm(mc.newCustomForm().setTitle('LXLEssential - update').addLabel(update.msg.join('\n')),(pl)=>{
+                    doneUpdate(version);
+                });
+            }
         }
+    }catch(err){
+        getError(err);
     }
+    
 });
 mc.listen('onLeft', (pl) => {
-    playerList.remove(pl.realName);
-    set_GMoney(pl.xuid, get_money(pl));
-    save_GMoney();
+    try{
+        playerList.remove(pl.realName);
+        set_GMoney(pl.xuid, get_money(pl));
+        save_GMoney();
+    }catch(err){
+        getError(err);
+    }
+
 });
 
 var timeout = {};
