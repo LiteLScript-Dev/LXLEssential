@@ -559,12 +559,16 @@ function del_warpF() {
 
 function set_warp(pl, dt) {
     if (dt == null) return;
-    if (warp_exits(dt[0])) {
-        pl.tell(getLang(langtype.warp, 'warpc_message_already_exist'));
-        return;
+    try{
+        if (warp_exits(dt[0])) {
+            pl.tell(getLang(langtype.warp, 'warpc_message_already_exist'));
+            return;
+        }
+        add_warp(dt[0], parsePOS(pl.pos));
+        pl.tell(getLang(langtype.warp, 'warp_message_add_success'));
+    }catch(err){
+        getError(err);
     }
-    add_warp(dt[0], parsePOS(pl.pos));
-    pl.tell(getLang(langtype.warp, 'warp_message_add_success'));
 }
 
 function del_warp(pl, dt) {
