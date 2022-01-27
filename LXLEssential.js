@@ -126,7 +126,7 @@ var cfg = {
             }
         }
     },
-    version: "3788",
+    version: "3789",
     lang: 'zh_CN'
 };
 
@@ -1125,6 +1125,8 @@ if(cfg.tool.shop.sell.enable){
         }
     });
 }
+
+
 
 
 init();
