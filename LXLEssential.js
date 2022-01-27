@@ -23,8 +23,8 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.4.0.1';
-const lang_version = 1.6;
+const version = '1.4.0.2';
+const lang_version = 1.7;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
 const data_path = dir_path + "data.json";
@@ -35,6 +35,8 @@ const error_path = dir_path + "errors/";
 const notice_path = dir_path+'notice.json';
 const log_path = dir_path + "log.txt";
 const update_path = dir_path+'update.json';
+const shop_path = dir_path+"shop/";
+const shop_sell_path = shop_path+"sell.json";
 
 function checkDir(path){
     if (File.exists(path) == false) {
@@ -50,6 +52,7 @@ function checkFile(path,thing){
 checkDir(dir_path);
 checkDir(error_path);
 checkDir(lang_dir);
+checkDir(shop_path);
 var db = { home: {}, warp: {} };
 
 var cfg = {
@@ -113,12 +116,23 @@ var cfg = {
         },
         notice:{
             enable:true
+        },
+        shop:{
+            sell:{
+                enable:true
+            },
+            buy:{
+                enable:true
+            }
         }
     },
-    version: "3786",
+    version: "3787",
     lang: 'zh_CN'
 };
 
+function loadJSON(path){
+    return JSON.parse(file.readFrom(path));
+}
 
 checkFile(config_path, JSON.stringify(cfg, null, '\t'))
 checkFile(data_path, JSON.stringify(db, null, '\t'))
@@ -126,7 +140,7 @@ checkFile(offlineMoney_path,JSON.stringify({}, null, '\t'))
 checkFile(xuiddb_path,JSON.stringify({}, null, '\t'))
 checkFile(notice_path,JSON.stringify({v:0,page:['这是一篇测试公告'],done:{}}));
 checkFile(update_path,JSON.stringify({v:version,done:[],msg:[]}));
-
+checkFile(shop_sell_path,JSON.stringify({}));
 const langtype = {
     home: 'HOME',
     tpa: 'TPA',
@@ -134,22 +148,25 @@ const langtype = {
     tpr: 'TPR',
     back: "BACK",
     economy: 'ECONOMY',
-    tool: 'TOOL'
+    tool: 'TOOL',
+    shop:"SHOP"
 }
 
 var GMoney;
 var xuiddb;
 var notice;
 var update;
+var shop_sell;
 
 function init() {
     try{
-        var tmpcfg = JSON.parse(file.readFrom(config_path));
-        db = JSON.parse(file.readFrom(data_path));
-        GMoney = JSON.parse(file.readFrom(offlineMoney_path));
-        xuiddb = JSON.parse(file.readFrom(xuiddb_path));
-        notice = JSON.parse(file.readFrom(notice_path));
-        update = JSON.parse(file.readFrom(update_path));
+        var tmpcfg = loadJSON(config_path)
+        db = loadJSON(data_path)
+        GMoney = loadJSON(offlineMoney_path)
+        xuiddb = loadJSON(xuiddb_path)
+        notice = loadJSON(notice_path)
+        update = loadJSON(update_path)
+        shop_sell = loadJSON(shop_sell_path);
         if (tmpcfg.version != cfg.version) {
             logFile('config.json too old！！');
             //throw new Error('配置文件版本过低，请删除config.json重新生成！！');
@@ -997,7 +1014,124 @@ if(cfg.tool.notice.enable){
     });
 }
 
+function save_shop_sell(){
+    file.writeTo(shop_sell_path,JSON.stringify(shop_sell));
+}
+
+function addSellItem(it,name,price,replace=false){
+    let itnbt = it.getNbt();
+    //itnbt.removeTag("Damage");
+    itnbt.removeTag("Count");
+    if(shop_sell[name] != undefined){
+        if(!replace) return false;
+    }
+    shop_sell[name] = {type:it.type,snbt:itnbt.toSNBT(),price};
+    save_shop_sell();
+    return true;
+}
+
+function itemCanSell(it){
+    let itnbt = it.getNbt();
+    //itnbt.removeTag("Damage");
+    itnbt.removeTag("Count");
+    for(let i in shop_sell){
+        let tmp = shop_sell[i];
+        if(tmp.type == it.type){
+            if(itnbt.toSNBT() == tmp.snbt){
+                return {can:true,price:tmp.price,name:i};
+            }            
+        }
+    }
+    return {can:false};
+}
+
+function setsellForm(){
+    var fm = mc.newCustomForm();
+    fm.addInput(getLang(langtype.shop,"setsell_form_input_name"));
+    fm.addInput(getLang(langtype.shop,"setell_form_input_price"));
+    return fm;
+}
+
+function setSellFunc(pl,dt){
+    if(dt==null)return;
+    let it = pl.getHand();
+    if(it.isNull()){
+        pl.tell(getLang(langtype.shop,"setsell_message_when_noitem"));
+        return;
+    }
+    if(!addSellItem(it,dt[0],Number(dt[1]))){
+        pl.sendModalForm("SetSell",getLang(langtype.shop,"setsell_item_exits"),"yes","no",(pl2,id)=>{
+            if(id){
+                addSellItem(it,dt[0],Number(dt[1]),true);
+                pl2.tell(getLang(langtype.shop,"setsell_message_done"));
+            }else{
+                pl.tell(getLang(langtype.shop,"setsell_change_false"));
+            }
+        });
+    }else{
+        pl.tell(getLang(langtype.shop,"setsell_message_done"));
+    }
+}
+
+function sellFunc(pl,id){
+    if(id==false)return;
+    let con = pl.getInventory();
+    var its = con.getAllItems();
+    var msg = {its:{},money:0};
+    its.forEach(it=>{
+        if(it.isNull())return;
+        let selldt = itemCanSell(it)
+        if(selldt.can){
+            let count = it.count;
+            it.setNull();
+            if(msg.its[selldt.name]==undefined)msg.its[selldt.name]=0;
+            msg.its[selldt.name]+=count;
+            msg.money += selldt.price * count;
+        }
+    });
+    if(msg.money ==0){
+        pl.tell(getLang(langtype.shop,"sell_message_noitem"));
+    }else{
+        let text = "";
+        for(let i in msg.its){
+            let m = msg.its[i];
+            text += getLang(langtype.shop,"sell_message_item",{"%name%":i,"%number%":m}) + "\n";     
+        }
+        text+= getLang(langtype.shop,"sell_message_money",{"%money%":msg.money});
+        add_money(pl,msg.money);
+        pl.sendForm(mc.newCustomForm().addLabel(text),(pl)=>{});
+    }
+}
+
+if(cfg.shop.sell.enable){
+    mc.regPlayerCmd("setsell",getLang(langtype.shop,"setsell_command_describe"),(pl)=>{
+        pl.sendForm(setsellForm(),setSellFunc);
+    },1);
+    mc.regPlayerCmd("sell",getLang(langtype.shop,"sell_command_describe"),(pl)=>{
+        pl.sendModalForm("Sell",getLang(langtype.shop,"sell_message_warn"),getLang(langtype.shop,"shop_form_yes"),getLang(langtype.shop,"shop_form_no"),sellFunc);
+    });
+    mc.regPlayerCmd("price",getLang(langtype.shop,"price_command_describe"),(pl)=>{
+        let it = pl.getHand();
+        if(it.isNull()){
+            pl.tell(getLang(langtype.shop,"setsell_message_when_noitem"));
+            return;
+        }else{
+            let dt = itemCanSell(it);
+            if(dt.can){
+                pl.tell(getLang(langtype.shop,"price_message_query",{"%name%":dt.name,"%price%":dt.price}))
+            }else{
+                pl.tell(getLang(langtype.shop,"price_message_cannot"));
+            }
+        }
+    });
+}
+
+
+
+
 init();
+
+//#region 导出API
 
 lxl.export(get_home, "lxless:getHome");
 lxl.export(get_homes, "lxless:getHomes");
@@ -1037,6 +1171,9 @@ lxl.export((xuid, num) => {
     return true;
 }, "lxless:setOfflineMoney");
 
+//#endregion
+
+//#region lxless指令
 mc.regPlayerCmd('lxless','LXLEssential',(pl,arg)=>{
     switch(arg.length){
         case 0:
@@ -1068,7 +1205,8 @@ mc.regPlayerCmd('lxless','LXLEssential',(pl,arg)=>{
             pl.tell('unknow command, input /lxless help to see all the commands');
             break;
     }
-});
+},1);
+//#endregion
 
 mc.regConsoleCmd("lxless", "LXLEssential", (arg) => {
     if (arg.length == 0) {
