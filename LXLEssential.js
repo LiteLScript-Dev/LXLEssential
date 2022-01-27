@@ -1048,7 +1048,7 @@ function itemCanSell(it){
 function setsellForm(){
     var fm = mc.newCustomForm();
     fm.addInput(getLang(langtype.shop,"setsell_form_input_name"));
-    fm.addInput(getLang(langtype.shop,"setell_form_input_price"));
+    fm.addInput(getLang(langtype.shop,"setsell_form_input_price"));
     return fm;
 }
 
@@ -1099,6 +1099,7 @@ function sellFunc(pl,id){
         }
         text+= getLang(langtype.shop,"sell_message_money",{"%money%":msg.money});
         add_money(pl,msg.money);
+        pl.refreshItems();
         pl.sendForm(mc.newCustomForm().addLabel(text),(pl)=>{});
     }
 }
@@ -1125,8 +1126,6 @@ if(cfg.tool.shop.sell.enable){
         }
     });
 }
-
-
 
 
 init();
