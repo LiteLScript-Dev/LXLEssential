@@ -23,8 +23,8 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.4.0.3';
-const lang_version = 1.8;
+const version = '1.4.0.4';
+const lang_version = 1.9;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
 const data_path = dir_path + "data.json";
@@ -1045,6 +1045,47 @@ function itemCanSell(it){
     return {can:false};
 }
 
+function setAllSellForm(){
+    var fm = mc.newSimpleForm();
+    Object.keys(shop_sell).forEach(s=>{
+        fm.addButton(s);
+    });
+    return fm;
+}
+
+function setAllSellFunc(pl,dt){
+    if(dt == null)return;
+    let name = Object.keys(shop_sell)[dt];
+    let it = shop_sell[name];
+    let fm = mc.newCustomForm();
+    fm.addInput(getLang(langtype.shop,"setsell_form_input_name"),"",name);
+    fm.addInput(getLang(langtype.shop,"setsell_form_input_price"),"",it.price.toString())
+    fm.addDropdown(getLang(langtype.shop,"setsell_all_drop_chose"),[getLang(langtype.shop,"setsell_all_drop_edit"),getLang(langtype.shop,"setsell_all_drop_delete")]);
+    pl.sendForm(fm,setAllSellFunc_item(name));
+}
+
+function setAllSellFunc_item(name){
+    return (pl,dt)=>{
+        if(dt==null)return;
+        let old = shop_sell[name];
+        switch(dt[2]){
+            case 0:
+                if(dt[0] != name){
+                    delete shop_sell[name];
+                }
+                old.price = Number(dt[1]);
+                shop_sell[dt[0]] = old;
+                save_shop_sell();
+                break;
+            case 1:
+                delete shop_sell[name];
+                save_shop_sell();
+                break;
+        }
+        pl.tell(getLang(langtype.shop,"setsell_message_done"));
+    }
+}
+
 function setsellForm(){
     var fm = mc.newCustomForm();
     fm.addInput(getLang(langtype.shop,"setsell_form_input_name"));
@@ -1055,10 +1096,6 @@ function setsellForm(){
 function setSellFunc(pl,dt){
     if(dt==null)return;
     let it = pl.getHand();
-    if(it.isNull()){
-        pl.tell(getLang(langtype.shop,"setsell_message_when_noitem"));
-        return;
-    }
     if(!addSellItem(it,dt[0],Number(dt[1]))){
         pl.sendModalForm("SetSell",getLang(langtype.shop,"setsell_item_exits"),"yes","no",(pl2,id)=>{
             if(id){
@@ -1106,7 +1143,12 @@ function sellFunc(pl,id){
 
 if(cfg.tool.shop.sell.enable){
     mc.regPlayerCmd("setsell",getLang(langtype.shop,"setsell_command_describe"),(pl)=>{
-        pl.sendForm(setsellForm(),setSellFunc);
+        let it = pl.getHand();
+        if(it.isNull()){
+            pl.sendForm(setAllSellForm(),setAllSellFunc);
+        }else{
+            pl.sendForm(setsellForm(),setSellFunc);
+        }
     },1);
     mc.regPlayerCmd("sell",getLang(langtype.shop,"sell_command_describe"),(pl)=>{
         pl.sendModalForm("Sell",getLang(langtype.shop,"sell_message_warn"),getLang(langtype.shop,"shop_form_yes"),getLang(langtype.shop,"shop_form_no"),sellFunc);
@@ -1170,41 +1212,6 @@ lxl.export((xuid, num) => {
     return true;
 }, "lxless:setOfflineMoney");
 
-//#endregion
-
-//#region lxless指令
-mc.regPlayerCmd('lxless','LXLEssential',(pl,arg)=>{
-    switch(arg.length){
-        case 0:
-            pl.tell('unknow command, input /lxless help to see all the commands');
-            break;
-        case 1:
-            switch(arg[0]){
-                case 'version':
-                case "v":
-                    pl.tell(`server is running on LXLEssential(v${version})`);
-                    break;
-                case "update":
-                    pl.tell('try update done');
-                    getUpdate();
-                    break;
-                case "reload":
-                    mc.runcmd('lxless reload');
-                    break;
-                case "help":
-                    var help = `/lxless v - view the version of the LXLEssential\n/lxless update - try update\n/lxless reload - reload the plugin`;
-                    pl.tell(help);
-                    break;
-                default:
-                    pl.tell('unknow command, input /lxless help to see all the commands');
-                    break;
-            }
-            break;
-        default:
-            pl.tell('unknow command, input /lxless help to see all the commands');
-            break;
-    }
-},1);
 //#endregion
 
 mc.regConsoleCmd("lxless", "LXLEssential", (arg) => {
