@@ -126,7 +126,7 @@ var cfg = {
             }
         }
     },
-    version: "3787",
+    version: "3788",
     lang: 'zh_CN'
 };
 
@@ -1103,7 +1103,7 @@ function sellFunc(pl,id){
     }
 }
 
-if(cfg.shop.sell.enable){
+if(cfg.tool.shop.sell.enable){
     mc.regPlayerCmd("setsell",getLang(langtype.shop,"setsell_command_describe"),(pl)=>{
         pl.sendForm(setsellForm(),setSellFunc);
     },1);
@@ -1125,8 +1125,6 @@ if(cfg.shop.sell.enable){
         }
     });
 }
-
-
 
 
 init();
