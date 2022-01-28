@@ -1,5 +1,6 @@
 {
     "latest": "1.4.0.4",
+    "necessary":false,
     "msg": [
         "version - 1.4.0.4",
         "修改/setsell - 空手输入指令会进入编辑商店状态，手中有物品会进入编辑手中物品状态",

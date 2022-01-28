@@ -34,9 +34,12 @@ const xuiddb_path = dir_path + "xuiddb.json";
 const error_path = dir_path + "errors/";
 const notice_path = dir_path+'notice.json';
 const log_path = dir_path + "log.txt";
-const update_path = dir_path+'update.json';
+const update_dir= dir_path+"/update/"
+const update_path = update_dir+'update.json';
 const shop_path = dir_path+"shop/";
 const shop_sell_path = shop_path+"sell.json";
+
+//lxl.require("LXLETAutoUpdate.js");
 
 function checkDir(path){
     if (File.exists(path) == false) {
@@ -52,6 +55,7 @@ function checkFile(path,thing){
 checkDir(dir_path);
 checkDir(error_path);
 checkDir(lang_dir);
+checkDir(update_dir);
 checkDir(shop_path);
 var db = { home: {}, warp: {} };
 
@@ -151,7 +155,12 @@ const langtype = {
     tool: 'TOOL',
     shop:"SHOP"
 }
-
+const UpdateNote = `如果自动更新炸了，解决方法为
+下载https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/lang/zh_CN.ini?download=true放到plugin/lxlessential/lang文件夹替换旧版
+下载https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/LXLEssential.js?download=true放到plugins文件夹替换旧版
+完成以上即可
+`
+checkFile(dir_path+"/update/note.txt",UpdateNote);
 var GMoney;
 var xuiddb;
 var notice;
@@ -325,6 +334,7 @@ function getNewFile(show=false) {
     network.httpGet('https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/LXLEssential.js?download=false', (c, d) => {
         if (c == 200) {
             if (file.exists(dir_path + ".noupdate") == false) {
+                file.writeTo(file.readFrom('./plugins/LXLEssential.js'),update_dir+`LXLEssential(${version}).js`);
                 file.writeTo('./plugins/LXLEssential.js', d);
                 mc.runcmd("lxl reload LXLEssential.js");
             }else{
@@ -340,8 +350,12 @@ function getUpdate(show = false) {
             var dt = JSON.parse(d);
             setUpdate(dt.latest,dt.msg);
             if (dt.latest != version) {
-                logFile(`获取到新版本：${dt.latest}，自动更新中...`);
-                getNewFile(show);
+                if(dt.necessary){
+                    logFile(`获取到新版本：${dt.latest}，自动更新中...`);
+                    getNewFile(show);
+                }else{
+                    logFile("未检测到新版本");
+                }
             } else {
                 if (show)
                     logFile("当前即为最新版本。");
@@ -354,7 +368,16 @@ function getUpdate(show = false) {
 }
 
 
-setInterval(getUpdate, 10 * 60 * 1000);
+setInterval(getUpdate, 10 * 60 * 1000);//十分钟
+
+function checkMoneyEnough(pl,m,sendM = false){
+    if(get_money(pl) < m){
+        if(sendM)
+            pl.tell(getLang(langtype.economy, 'economy_money_not_enough'));
+        return false;
+    }
+    return true;
+}
 
 function get_money(pl) {
     switch (cfg.economy.type) {
@@ -465,11 +488,19 @@ function add_warp(name, pos) {
     SAVE();
 }
 
+/**
+ * 移除WARP
+ * @param {String} name 要移除的WARP名字
+ */
 function remove_warp(name) {
     delete db.warp[name];
     SAVE();
 }
-
+/**
+ * 查询WARP是否存在
+ * @param {String} name 查询WARP的名字
+ * @returns 是否存在
+ */
 function warp_exits(name) {
     return db.warp[name] != undefined;
 }
@@ -499,11 +530,10 @@ function sethome(pl, dt) {
         return;
     }
     if (cfg.home.cost.enable) {
-        if (get_money(pl) < cfg.home.cost.money) {
-            pl.tell(getLang(langtype.economy, 'economy_money_not_enough'));
-            return;
+        if(checkMoneyEnough(pl,cfg.home.cost.money),true){
+            remove_money(pl, cfg.home.cost.money);
         }
-        remove_money(pl, cfg.home.cost.money);
+        else return;
     }
     add_home(pl.xuid, dt[0], parsePOS(pl.pos));
     pl.tell(getLang(langtype.home, 'home_message_add_success'))
@@ -653,6 +683,13 @@ function tpa(pl, dt) {
 
 var tpal = new Map();
 
+
+/**
+ * 询问是否接受传送
+ * @param {number} mode 传送模式，`0`为传送请求玩家到目标玩家，`1`为传送目标玩家到请求玩家
+ * @param {String} targrt_xuid 目标玩家XUID
+ * @param {String} apply_name 请求玩家XUID 
+ */
 function askTP(mode, targrt_xuid, apply_name) {
     if (tpal.has(targrt_xuid)) {
         if (tpal.get(targrt_xuid) == false) {
@@ -700,11 +737,9 @@ if (cfg.tpa.enable) {
             return;
         }
         if (cfg.tpa.cost.enable) {
-            if (get_money(pl) < cfg.tpa.cost.money) {
-                pl.tell(getLang(langtype.economy, 'economy_money_not_enough'));
-                return;
-            }
-            remove_money(pl, cfg.tpa.cost.money);
+            if(checkMoneyEnough(pl,cfg.tpa.cost.money,true))
+                remove_money(pl, cfg.tpa.cost.money);
+            else return;
         }
         pl.sendForm(tpaf(), tpa);
     });
@@ -736,11 +771,9 @@ if (cfg.back.enable) {
     var back = new Map();
     mc.regPlayerCmd('back', getLang(langtype.back, 'back_command_describe'), (pl, arg) => {
         if (cfg.back.cost.enable) {
-            if (get_money(pl) < cfg.back.cost.money) {
-                pl.tell(getLang(langtype.economy, 'economy_money_not_enough'));
-                return;
-            }
-            remove_money(pl, cfg.back.cost.money);
+            if(checkMoneyEnough(pl,cff.cost.back,true))
+                remove_money(pl, cfg.back.cost.money);
+            else return;      
         }
         if (back.has(pl.xuid)) {
             pl.teleport(back.get(pl.xuid));
@@ -752,6 +785,12 @@ if (cfg.back.enable) {
     mc.listen('onPlayerDie', (pl) => { back.set(pl.xuid, pl.pos) });
 }
 
+/**
+ * 获取一个随机数
+ * @param {number} minNum 最小值
+ * @param {number} maxNum 最大值
+ * @returns 介于最大值与最小值间的随机数
+ */
 function randomNum(minNum, maxNum) {
     switch (arguments.length) {
         case 1:
@@ -767,11 +806,9 @@ function randomNum(minNum, maxNum) {
 if (cfg.tpr.enable) {
     mc.regPlayerCmd('tpr', getLang(langtype.tpr, 'tpr_command_describe'), (pl, arg) => {
         if (cfg.tpr.cost.enable) {
-            if (get_money(pl) < cfg.tpr.cost.money) {
-                pl.tell(getLang(langtype.economy, 'economy_money_not_enough'));
-                return;
-            }
-            remove_money(pl, cfg.tpr.cost.money);
+            if (checkMoneyEnough(pl,cfg.tpr.cost.money,true))
+                remove_money(pl, cfg.tpr.cost.money);
+            else return;
         }
         mc.runcmd("effect \"" + pl.name + "\" resistance 60 5 true");
         var dim = pl.pos.dimid;
@@ -801,8 +838,8 @@ function payf(pl) {
 function payofff(pl) {
     var sd = get_money(pl);
     var fm = mc.newCustomForm();
-    var gm = []
-        ; Object.keys(GMoney).forEach(id => { gm.push(xuid2name(id)) });
+    var gm = []; 
+    Object.keys(GMoney).forEach(id => { gm.push(xuid2name(id)) });
     fm.addDropdown(getLang(langtype.economy, 'payoff_form_chose'), gm);
     fm.addInput(getLang(langtype.economy, 'payoff_form_input'), getLang(langtype.economy, 'pay_form_self_money', { "%money%": sd }));
     return fm;
@@ -820,10 +857,7 @@ function payoff(pl, dt) {
         pl.tell(getLang(langtype.economy, 'payoff_message_input_error'));
         return;
     }
-    if (um < get_money(pl)) {
-        pl.tell(getLang(langtype.economy, 'economy_money_not_enough'));
-        return;
-    }
+    if(!checkMoneyEnough(pl,um))return;
     remove_money(pl, um);
     add_GMoney(xuid, um);
     pl.tell(getLang(langtype.economy, 'payoff_message_pay_success', { "%player%": xuid2name(xuid), '&money&': um }));
@@ -836,15 +870,13 @@ function pay(pl, dt) {
         pl.tell(getLang(langtype.economy, 'pay_message_connot_pay_self'));
         return;
     }
-    if (isNaN(Number(dt[2])) || Number(dt[2]) < 1) {
+    let um = Number(dt[2])
+    if (isNaN(um) || um < 1) {
         pl.tell(getLang(langtype.economy, 'pay_message_input_error'))
         return;
     }
-    if (Number(dt[2]) > get_money(pl)) {
-        pl.tell(getLang(langtype.economy, 'economy_money_not_enough'));
-        return;
-    }
-    let my = Number(dt[2]);
+    if(!checkMoneyEnough(pl,um))return;
+    let my =um;
     let rate = Math.floor(my * cfg.economy.rate);
     switch(dt[3]){
         case 0:
@@ -859,6 +891,9 @@ function pay(pl, dt) {
     topl.tell(getLang(langtype.economy, 'pay_message_receive', { '%player%': pl.name, '%money%': my }));
 }
 
+/**
+ * 刷新所有在线玩家的离线计分板
+ */
 function flush_all_money() {
     mc.getOnlinePlayers().forEach(pl => {
         set_GMoney(pl.xuid, get_money(pl));
@@ -966,6 +1001,9 @@ function setNoticeForm(){
     return fm;
 }
 
+/**
+ * 刷新公告文件，去除非当前公告的数据
+ */
 function flushNotice(){
     for(var i in notice.done){
         if(i.toString() != notice.v.toString()){
@@ -1013,11 +1051,37 @@ if(cfg.tool.notice.enable){
         }
     });
 }
-
+/**
+ * 保存回收商店
+ */
 function save_shop_sell(){
     file.writeTo(shop_sell_path,JSON.stringify(shop_sell));
 }
 
+/**
+ * 去除物品损耗值
+ * @param {NbtCompound} itnbt 物品NBT对象
+ * @returns 去除掉损耗值的物品NBT对象
+ */
+function removeDamageTag(itnbt){
+    let tag = itnbt.getTag("tag") 
+    if(tag == null)return itnbt;
+    let damage = tag.getTag("Damage");
+    if(damage == null)return itnbt;
+    else{
+        tag.removeTag("Damage");
+        return itnbt;
+    }
+}
+
+/**
+ * 设置物品回收价格
+ * @param {Item} it 物品对象 
+ * @param {String} name 物品自定义名称
+ * @param {number} price 物品价格
+ * @param {bool} replace 若名称存在，是否替换
+ * @returns 是否设置成功
+ */
 function addSellItem(it,name,price,replace=false){
     let itnbt = it.getNbt();
     //itnbt.removeTag("Damage");
@@ -1030,6 +1094,11 @@ function addSellItem(it,name,price,replace=false){
     return true;
 }
 
+/**
+ * 
+ * @param {Item} it 物品是否可以出售
+ * @returns 可否出售
+ */
 function itemCanSell(it){
     let itnbt = it.getNbt();
     //itnbt.removeTag("Damage");
@@ -1168,7 +1237,6 @@ if(cfg.tool.shop.sell.enable){
         }
     });
 }
-
 
 init();
 
