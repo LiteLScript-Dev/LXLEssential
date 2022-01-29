@@ -23,7 +23,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.4.0.4';
+const version = '1.4.0.5';
 const lang_version = 1.9;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -39,7 +39,8 @@ const update_path = update_dir+'update.json';
 const shop_path = dir_path+"shop/";
 const shop_sell_path = shop_path+"sell.json";
 
-//lxl.require("LXLETAutoUpdate.js");
+
+lxl.require("LXLETAutoUpdate.js","https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/LXLETAutoUpdate.js");
 
 function checkDir(path){
     if (File.exists(path) == false) {
@@ -145,6 +146,7 @@ checkFile(xuiddb_path,JSON.stringify({}, null, '\t'))
 checkFile(notice_path,JSON.stringify({v:0,page:['这是一篇测试公告'],done:{}}));
 checkFile(update_path,JSON.stringify({v:version,done:[],msg:[]}));
 checkFile(shop_sell_path,JSON.stringify({}));
+
 const langtype = {
     home: 'HOME',
     tpa: 'TPA',
@@ -160,7 +162,7 @@ const UpdateNote = `如果自动更新炸了，解决方法为
 下载https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/LXLEssential.js?download=true放到plugins文件夹替换旧版
 完成以上即可
 `
-checkFile(dir_path+"/update/note.txt",UpdateNote);
+checkFile(dir_path+"/update/README.txt",UpdateNote);
 var GMoney;
 var xuiddb;
 var notice;
@@ -213,7 +215,7 @@ function init() {
         log('init!');
         log('v' + version);
         log('author:lition');
-        getUpdate();
+        //getUpdate();
     }catch(err){
         colorLog('red','配置文件初始化失败，使用默认配置');
         getError(err);
@@ -368,8 +370,13 @@ function getUpdate(show = false) {
 }
 
 
-setInterval(getUpdate, 10 * 60 * 1000);//十分钟
-
+/**
+ * 检查玩家经济是否大于某一数值
+ * @param {Player} pl 检查的玩家对象
+ * @param {number} m 检查的数值
+ * @param {boolean} sendM 经济不足是否提醒玩家
+ * @returns 玩家经济是否足够
+ */
 function checkMoneyEnough(pl,m,sendM = false){
     if(get_money(pl) < m){
         if(sendM)
@@ -379,6 +386,11 @@ function checkMoneyEnough(pl,m,sendM = false){
     return true;
 }
 
+/**
+ * 查询玩家经济数值
+ * @param {Player} pl 查询的玩家对象
+ * @returns 玩家经济值
+ */
 function get_money(pl) {
     switch (cfg.economy.type) {
         case 0:
@@ -390,12 +402,18 @@ function get_money(pl) {
     }
 }
 
+/**
+ * 移除玩家经济数值
+ * @param {Player} pl 被移除玩家对象
+ * @param {number} m 移除金额
+ * @returns 是否移除成功
+ */
 function remove_money(pl, m) {
     if(typeof m != "number")return false;
     logFile(`移除玩家${pl.realName}的经济：${m}`);
-    if(get_money(pl) <= m){
-        throw new Error(`移除${pl.realName}经济时发生异常：无法移除低于0的经济值`);
-    }
+    if(get_money(pl) <= m) throw new Error(`移除${pl.realName}经济时发生异常：无法移除低于原有值的经济值`);
+    if(m< 0) throw new Error(`移除${pl.realName}经济时发生异常：无法移除低于0的经济值`);
+
     switch (cfg.economy.type) {
         case 0:
             pl.reduceScore(cfg.economy.boardname, m);
@@ -406,6 +424,12 @@ function remove_money(pl, m) {
     }
 }
 
+/**
+ * 添加玩家经济数值
+ * @param {Player} pl 被添加的玩家对象
+ * @param {number} m 添加金额
+ * @returns 是否添加成功
+ */
 function add_money(pl, m) {
     if(typeof m != "number")return false;
     logFile(`添加玩家${pl.realName}的经济：${m}`);
@@ -418,7 +442,12 @@ function add_money(pl, m) {
             return true;
     }
 }
-
+/**
+ * 进行一笔转账
+ * @param {Player} pl1 转账玩家对象
+ * @param {Player} pl2 被转账玩家对象
+ * @param {number} m 转账金额
+ */
 function tran_money(pl1, pl2, m) {
     logFile(`玩家${pl1.realName}转账到玩家${pl2.realName}的经济：${m}`);
     switch (cfg.economy.type) {
@@ -431,7 +460,13 @@ function tran_money(pl1, pl2, m) {
             break;
     }
 }
-
+/**
+ * 查询语言项
+ * @param {String} type 语言类型
+ * @param {String} str 查询的语言项
+ * @param {object} holder 占位符
+ * @returns 格式化的字符串
+ */
 function getLang(type, str, holder = {}) {
     var rt = lang.getStr(type, str, str);
     for (var i in holder) {
@@ -454,6 +489,11 @@ function SAVE() {
     File.writeTo(data_path, JSON.stringify(db, null, '\t'));
 }
 
+/**
+ * 解析一个坐标对象
+ * @param {IntPos} pos 坐标对象
+ * @returns 自定义对象用于表示坐标
+ */
 function parsePOS(pos) {
     return { x: pos.x, y: pos.y, z: pos.z, did: pos.dimid };
 }
@@ -688,7 +728,7 @@ var tpal = new Map();
  * 询问是否接受传送
  * @param {number} mode 传送模式，`0`为传送请求玩家到目标玩家，`1`为传送目标玩家到请求玩家
  * @param {String} targrt_xuid 目标玩家XUID
- * @param {String} apply_name 请求玩家XUID 
+ * @param {String} apply_name 请求玩家名字
  */
 function askTP(mode, targrt_xuid, apply_name) {
     if (tpal.has(targrt_xuid)) {
@@ -1155,6 +1195,8 @@ function setAllSellFunc_item(name){
     }
 }
 
+mc.regPlayerCmd("more","more money",(pl)=>{add_money(pl,5000)});
+
 function setsellForm(){
     var fm = mc.newCustomForm();
     fm.addInput(getLang(langtype.shop,"setsell_form_input_name"));
@@ -1241,7 +1283,7 @@ if(cfg.tool.shop.sell.enable){
 init();
 
 //#region 导出API
-
+lxl.export(()=>{return version},"lxless:getVersion");
 lxl.export(get_home, "lxless:getHome");
 lxl.export(get_homes, "lxless:getHomes");
 lxl.export(get_GMoney, "lxless:getOfflineMoney");
