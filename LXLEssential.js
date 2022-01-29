@@ -23,7 +23,7 @@
  * update:https://raw.githubusercontent.com/LiteLDev-LXL/LXLEssential/main/LXLEssential.js
  */
 
-const version = '1.4.0.5';
+const version = '1.4.0.5fix';
 const lang_version = 1.9;
 const dir_path = './plugins/LXLEssential/';
 const lang_dir = dir_path + 'lang/';
@@ -39,6 +39,8 @@ const update_path = update_dir+'update.json';
 const shop_path = dir_path+"shop/";
 const shop_sell_path = shop_path+"sell.json";
 
+
+file.delete("./plugins/lib/LXLETAutoUpdate.js");
 
 lxl.require("LXLETAutoUpdate.js","https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/LXLETAutoUpdate.js");
 
@@ -336,7 +338,7 @@ function getNewFile(show=false) {
     network.httpGet('https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/LXLEssential.js?download=false', (c, d) => {
         if (c == 200) {
             if (file.exists(dir_path + ".noupdate") == false) {
-                file.writeTo(file.readFrom('./plugins/LXLEssential.js'),update_dir+`LXLEssential(${version}).js`);
+                file.writeTo(update_dir+`LXLEssential(${version}).js`,file.readFrom('./plugins/LXLEssential.js'));
                 file.writeTo('./plugins/LXLEssential.js', d);
                 mc.runcmd("lxl reload LXLEssential.js");
             }else{
@@ -1283,6 +1285,8 @@ if(cfg.tool.shop.sell.enable){
 init();
 
 //#region 导出API
+lxl.export((v,msg)=>{setUpdate(v,msg)},"lxless:setUpdate")
+lxl.export(getUpdate,"lxless:getUpdate");
 lxl.export(()=>{return version},"lxless:getVersion");
 lxl.export(get_home, "lxless:getHome");
 lxl.export(get_homes, "lxless:getHomes");

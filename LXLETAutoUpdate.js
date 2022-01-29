@@ -5,10 +5,10 @@
 function update(){
     lxl.listPlugins().forEach(p=>{
         if(p == "LXLEssential.js"){
-            let v = lxl.import("lxless:getVersion")();
-            getUpdate(v);
+            lxl.import("lxless:getUpdate")();
         }
     });
+    getUpdate("0");
 }
 
 setInterval(update, 60*1000*10);
@@ -17,9 +17,9 @@ function getNewFile(show=false) {
     network.httpGet('https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/LXLEssential.js?download=false', (c, d) => {
         if (c == 200) {
             if (file.exists(dir_path + ".noupdate") == false) {
-                file.writeTo(file.readFrom('./plugins/LXLEssential.js'),update_dir+`LXLEssential(${version}).js`);
+                file.writeTo(update_dir+`LXLEssential(${version}).js`,file.readFrom('./plugins/LXLEssential.js'));
                 file.writeTo('./plugins/LXLEssential.js', d);
-                mc.runcmd("lxl reload LXLEssential.js");
+                mc.runcmd("lxl load ./plugins/LXLEssential.js");
             }else{
                 log('您关闭了自动更新，更新检测退出');
             }
@@ -31,7 +31,7 @@ function getUpdate(v,show = false) {
     network.httpGet('https://liteldev-lxl.coding.net/p/lxlessential/d/LXLEssential/git/raw/main/api.json?download=false', (c, d) => {
         if (c == 200) {
             var dt = JSON.parse(d);
-            setUpdate(dt.latest,dt.msg);
+            //lxl.import("lxless:setUpdate")(dt.latest,dt.msg);
             if (dt.latest != v) {
                 if(dt.necessary){
                     log(`获取到新版本：${dt.latest}，自动更新中...`);
