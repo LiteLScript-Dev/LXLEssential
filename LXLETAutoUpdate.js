@@ -3,12 +3,15 @@
 
 
 function update(){
+    let find = false;
     lxl.listPlugins().forEach(p=>{
         if(p == "LXLEssential.js"){
             lxl.import("lxless:getUpdate")();
+            find = true;
         }
     });
-    getUpdate("0");
+    if(!find)
+        getUpdate("0");
 }
 
 setInterval(update, 60*1000*10);
